@@ -26,10 +26,11 @@ interface Prefijo {
 
 import { BuscadorCuentas } from "./BuscadorCuentas";
 import { Cuenta } from "./useBuscarCuentas";
+import { BuscadorTerceros, Tercero } from "./BuscadorTerceros";
 
 interface Movimiento {
   cuenta: Cuenta | null;
-  tercero: string;
+  tercero: Tercero | null;
   documentoCruce: string;
   debito: number;
   credito: number;
@@ -58,7 +59,7 @@ export default function ModalTransaccion({ open, onClose, onSave }: ModalTransac
   const [numeracionError, setNumeracionError] = useState<string>("");
   const [descripcion, setDescripcion] = useState<string>("");
   const [movimientos, setMovimientos] = useState<Movimiento[]>([
-    { cuenta: null, tercero: "", documentoCruce: "", debito: 0, credito: 0, comentario: "" },
+    { cuenta: null, tercero: null, documentoCruce: "", debito: 0, credito: 0, comentario: "" },
   ]);
   const [fecha, setFecha] = useState<Date | undefined>(undefined);
 
@@ -104,7 +105,7 @@ export default function ModalTransaccion({ open, onClose, onSave }: ModalTransac
   };
 
   const handleAddRow = () => {
-    setMovimientos([...movimientos, { cuenta: "", tercero: "", documentoCruce: "", debito: 0, credito: 0, comentario: "" }]);
+    setMovimientos([...movimientos, { cuenta: null, tercero: null, documentoCruce: "", debito: 0, credito: 0, comentario: "" }]);
   };
 
   const handleMovimientoChange = (index: number, campo: keyof Movimiento, valor: any) => {
@@ -211,7 +212,10 @@ export default function ModalTransaccion({ open, onClose, onSave }: ModalTransac
                       />
                     </td>
                     <td className="border p-1">
-                      <Input value={m.tercero} onChange={(e) => handleMovimientoChange(i, "tercero", e.target.value)} />
+                      <BuscadorTerceros
+                        value={m.tercero}
+                        onSelect={tercero => handleMovimientoChange(i, "tercero", tercero)}
+                      />
                     </td>
                     <td className="border p-1">
                       <Input value={m.documentoCruce} onChange={(e) => handleMovimientoChange(i, "documentoCruce", e.target.value)} />

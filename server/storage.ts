@@ -125,8 +125,9 @@ export class DatabaseStorage implements IStorage {
     }
     
     if (busqueda) {
+      const search = `%${busqueda.toLowerCase()}%`;
       condiciones.push(
-        sql`(${terceros.primerNombre} || ' ' || ${terceros.primerApellido} || ' ' || ${terceros.numeroIdentificacion} || ' ' || COALESCE(${terceros.email}, '')) ILIKE ${`%${busqueda}%`}`
+        sql`(LOWER(CONCAT_WS(' ', ${terceros.primerNombre}, ${terceros.primerApellido}, ${terceros.numeroIdentificacion}, COALESCE(${terceros.email},''))) LIKE ${search})`
       );
     }
     

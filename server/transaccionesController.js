@@ -2,7 +2,7 @@
 // Gestiona las operaciones CRUD sobre las transacciones
 
 import { db } from './db.ts';
-import { comprobantesContables, movimientosContables } from '../shared/schema.ts';
+import { comprobantesContables, movimientosContables, planCuentas } from '../shared/schema.ts';
 import { eq, and, like } from 'drizzle-orm';
 
 // Obtener todas las transacciones
