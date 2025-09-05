@@ -37,13 +37,16 @@ interface BuscadorTercerosProps {
   value: Tercero | null;
   onSelect: (tercero: Tercero | null) => void;
   placeholder?: string;
+  disabled?: boolean;
 }
 
-export const BuscadorTerceros: React.FC<BuscadorTercerosProps> = ({
-  value,
-  onSelect,
-  placeholder = "Buscar tercero por nombre o identificación"
-}) => {
+export const BuscadorTerceros: React.FC<BuscadorTercerosProps> = (props) => {
+  const {
+    value,
+    onSelect,
+    placeholder = "Buscar tercero por nombre o identificación",
+    disabled = false
+  } = props;
   const [input, setInput] = useState(value ? `${value.numeroIdentificacion} - ${value.razonSocial}` : "");
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -68,20 +71,23 @@ export const BuscadorTerceros: React.FC<BuscadorTercerosProps> = ({
   return (
     <div ref={ref} className="relative" style={{ minWidth: 320, width: '100%' }}>
       <input
-        className="border rounded px-2 py-1"
+        className="border rounded px-2 py-1 bg-gray-100 disabled:opacity-60"
         style={{ minWidth: 320, width: '100%' }}
         value={input}
         placeholder={placeholder}
+        disabled={disabled}
         onChange={e => {
+          if (disabled) return;
           setInput(e.target.value);
           setSearch(e.target.value);
           setOpen(true);
           setHighlighted(-1);
           onSelect(null);
         }}
-        onFocus={() => setOpen(true)}
+        onFocus={() => { if (!disabled) setOpen(true); }}
         autoComplete="off"
         onKeyDown={e => {
+          if (disabled) return;
           if (!open || data.length === 0) return;
           if (e.key === 'ArrowDown') {
             e.preventDefault();

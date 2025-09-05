@@ -27,6 +27,10 @@ interface Prefijo {
 import { BuscadorCuentas } from "./BuscadorCuentas";
 import { Cuenta } from "./useBuscarCuentas";
 import { BuscadorTerceros, Tercero } from "./BuscadorTerceros";
+import Modal from "@/components/ui/modal";
+import { useForm } from "react-hook-form";
+import { TerceroForm } from "@/components/terceros/tercero-form";
+import { CrearCuentaForm } from "./CrearCuentaForm";
 
 interface Movimiento {
   cuenta: Cuenta | null;
@@ -46,10 +50,20 @@ interface ModalTransaccionProps {
     numeracion: number | string;
     descripcion: string;
     movimientos: Movimiento[];
+    tercero?: Tercero | null;
   }) => void;
+  tercero?: Tercero | null;
+  onTerceroChange?: (tercero: Tercero | null) => void;
 }
 
-export default function ModalTransaccion({ open, onClose, onSave }: ModalTransaccionProps) {
+export default function ModalTransaccion({ open, onClose, onSave, tercero, onTerceroChange }: ModalTransaccionProps) {
+  const [terceroLocal, setTerceroLocal] = useState<Tercero | null>(tercero || null);
+  const [unicoTercero, setUnicoTercero] = useState<boolean>(true);
+  const [showCrearCuenta, setShowCrearCuenta] = useState(false);
+  const [showCrearTercero, setShowCrearTercero] = useState(false);
+  useEffect(() => {
+    setTerceroLocal(tercero || null);
+  }, [tercero]);
   const [tiposTransaccion, setTiposTransaccion] = useState<TipoTransaccion[]>([]);
   const [tipoTransaccion, setTipoTransaccion] = useState<string>("");
   const [prefijos, setPrefijos] = useState<Prefijo[]>([]);
@@ -120,16 +134,16 @@ export default function ModalTransaccion({ open, onClose, onSave }: ModalTransac
 
   const handleSave = () => {
     if (!balanceado || numeracionError) return;
-    onSave({ tipoTransaccion: Number(tipoTransaccion), prefijo, numeracion, descripcion, movimientos });
+    onSave({ tipoTransaccion: Number(tipoTransaccion), prefijo, numeracion, descripcion, movimientos, tercero: terceroLocal });
   };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-  <DialogContent className="max-w-5xl" style={{ minWidth: 700 }}>
+  <DialogContent className="max-w-full" style={{ minWidth: 350, maxWidth: '98vw', overflowX: 'auto' }}>
         <DialogHeader>
           <DialogTitle>Nueva Transacción</DialogTitle>
         </DialogHeader>
-        <div>
+  <div style={{overflowX: 'auto', width: '100%'}}>
           {/* Encabezado */}
           <div className="flex gap-4 mb-4 items-end flex-wrap">
             <div className="flex flex-col">
@@ -184,6 +198,27 @@ export default function ModalTransaccion({ open, onClose, onSave }: ModalTransac
                 onChange={e => setFecha(e.target.value ? new Date(e.target.value) : undefined)}
               />
             </div>
+            <div className="flex flex-col min-w-[320px]">
+              <label className="flex items-center gap-2">
+                Tercero
+                <input
+                  type="checkbox"
+                  checked={unicoTercero}
+                  onChange={e => setUnicoTercero(e.target.checked)}
+                  className="ml-2"
+                />
+                <span className="text-xs">Un único tercero para toda la transacción</span>
+              </label>
+              <BuscadorTerceros
+                value={terceroLocal}
+                onSelect={t => {
+                  setTerceroLocal(t);
+                  onTerceroChange && onTerceroChange(t);
+                }}
+                placeholder="Buscar tercero por nombre o identificación"
+                disabled={!unicoTercero}
+              />
+            </div>
             <div className="flex-1 min-w-[200px] flex flex-col">
               <label>Descripción</label>
               <Input value={descripcion} onChange={(e) => setDescripcion(e.target.value)} className="w-full" />
@@ -194,7 +229,7 @@ export default function ModalTransaccion({ open, onClose, onSave }: ModalTransac
               <thead>
                 <tr className="bg-gray-100">
                   <th className="p-2 border">Cuenta</th>
-                  <th className="p-2 border">Tercero</th>
+                  { !unicoTercero && <th className="p-2 border">Tercero</th> }
                   <th className="p-2 border">Doc. Cruce</th>
                   <th className="p-2 border">Comentario</th>
                   <th className="p-2 border">Débito</th>
@@ -211,12 +246,15 @@ export default function ModalTransaccion({ open, onClose, onSave }: ModalTransac
                         onSelect={cuenta => handleMovimientoChange(i, "cuenta", cuenta)}
                       />
                     </td>
-                    <td className="border p-1">
-                      <BuscadorTerceros
-                        value={m.tercero}
-                        onSelect={tercero => handleMovimientoChange(i, "tercero", tercero)}
-                      />
-                    </td>
+                    { !unicoTercero && (
+                      <td className="border p-1">
+                        <BuscadorTerceros
+                          value={m.tercero}
+                          onSelect={tercero => handleMovimientoChange(i, "tercero", tercero)}
+                          placeholder="Buscar tercero por nombre o identificación"
+                        />
+                      </td>
+                    )}
                     <td className="border p-1">
                       <Input value={m.documentoCruce} onChange={(e) => handleMovimientoChange(i, "documentoCruce", e.target.value)} />
                     </td>
@@ -247,10 +285,32 @@ export default function ModalTransaccion({ open, onClose, onSave }: ModalTransac
             {!balanceado && <span className="text-red-500">⚠ No balanceado</span>}
           </div>
           {/* Acciones */}
-          <div className="flex justify-end gap-2 mt-6">
-            <Button className="bg-red-600 text-white px-4 py-2 rounded mb-4 hover:bg-red-700 transition" onClick={onClose}>Cancelar</Button>
-            <Button className="bg-green-600 text-white px-4 py-2 rounded mb-4 hover:bg-green-700 transition" onClick={handleSave} disabled={!balanceado || !!numeracionError}>Guardar</Button>
+          <div className="flex justify-between items-end mt-6">
+            <div className="flex gap-2">
+              <Button variant="outline" className="mb-4" onClick={() => setShowCrearCuenta(true)}>Nueva cuenta</Button>
+              <Button variant="outline" className="mb-4" onClick={() => setShowCrearTercero(true)}>Nuevo tercero</Button>
+            </div>
+            <div className="flex gap-2">
+              <Button className="bg-red-600 text-white px-4 py-2 rounded mb-4 hover:bg-red-700 transition" onClick={onClose}>Cancelar</Button>
+              <Button className="bg-green-600 text-white px-4 py-2 rounded mb-4 hover:bg-green-700 transition" onClick={handleSave} disabled={!balanceado || !!numeracionError}>Guardar</Button>
+            </div>
           </div>
+
+          {/* Modal para crear cuenta (overlay sobre el modal de transacción) */}
+          {showCrearCuenta && (
+            <Modal onClose={e => { e?.stopPropagation?.(); setShowCrearCuenta(false); }}>
+              <CrearCuentaForm onClose={() => setShowCrearCuenta(false)} />
+            </Modal>
+          )}
+
+          {/* Modal para crear tercero (ahora usando el mismo Modal para coherencia visual) */}
+          {showCrearTercero && (
+            <Modal onClose={e => { e?.stopPropagation?.(); setShowCrearTercero(false); }}>
+              <TerceroForm isOpen={true} onClose={() => setShowCrearTercero(false)} mode="create" />
+            </Modal>
+          )}
+
+
         </div>
       </DialogContent>
     </Dialog>

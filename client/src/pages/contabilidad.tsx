@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect } from "react";
 import ModalTransaccion from "@/components/contabilidad/ModalTransaccion";
+import { Tercero } from "@/components/contabilidad/BuscadorTerceros";
 import { Edit, Trash2, List, CalendarDays, Percent, BarChart2, BookOpen, Settings } from "lucide-react";
 import TiposTransaccionConfig from "@/components/contabilidad/TiposTransaccionConfig";
 import PrefijosConfig from "@/components/contabilidad/PrefijosConfig";
@@ -49,6 +50,7 @@ const Contabilidad: React.FC = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [terceroSeleccionado, setTerceroSeleccionado] = useState<Tercero | null>(null);
 
   // Movimientos
   const [movimientos, setMovimientos] = useState<any[]>([]);
@@ -426,7 +428,7 @@ const Contabilidad: React.FC = () => {
           <ModalTransaccion
             open={showTransModal}
             onClose={() => setShowTransModal(false)}
-            onSave={async (data) => {
+            onSave={async (data: any) => {
               // Adaptar datos para backend
               const nuevaTransaccion = {
                 documento: `${data.prefijo}-${data.numeracion}`,
@@ -434,6 +436,7 @@ const Contabilidad: React.FC = () => {
                 fecha: new Date().toISOString().slice(0, 10),
                 usuario_id: 3, // Cambia por el usuario real si lo tienes
                 tipo: "manual", // Puedes adaptar según tu lógica
+                tercero_id: data.tercero?.id || null,
                 cuentas: data.movimientos.map(m => ({
                   cuenta_id: m.cuenta,
                   tercero_id: m.tercero,
@@ -452,6 +455,8 @@ const Contabilidad: React.FC = () => {
               setMovPage(1);
               setActiveTab("movimientos");
             }}
+            tercero={terceroSeleccionado}
+            onTerceroChange={setTerceroSeleccionado}
           />
         )}
       </main>
