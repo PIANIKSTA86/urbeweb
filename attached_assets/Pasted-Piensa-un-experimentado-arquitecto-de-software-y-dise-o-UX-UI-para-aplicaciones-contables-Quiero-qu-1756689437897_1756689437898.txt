@@ -1,0 +1,44 @@
+Piensa un experimentado arquitecto de software y diseño UX/UI para aplicaciones contables. Quiero que desarrolles una plataforma web y una app movil (Android o IOS) inspirada en el sistema de propietarios de Properix, pero con identidad propia y con un modulo contable completo integrado.
+
+Objetivo
+
+Construir un app integral para administracion de propiedad horizontal que combine:
+Contabilidad completa con reportes financieros, presupuestos y conciliaciones bancarias.
+Gestion de terceros, propietarios y unidades habitacionales.
+Facturacion y pagos en linea.
+Reservas de zonas comunes.
+
+-Tecnologias recomendadas
+Frontend Web: React + TailwindCSS.
+App Movil: React Native (Android e iOS).
+Backend: Node.js con Express escrito y comentado en español.
+Base de datos: MySQL escrito en español.
+Autenticacion y seguridad: JWT + roles de usuario (superadmin, propietarios, administracion, contadores, revisor, auxiliar).
+Pasarela de pago: PayU, Wompi o MercadoPago.
+Contabilidad: Motor interno con plan de cuentas personalizable.
+
+
+Modulos de la plataforma web
+Modulo 0. Landing page con las secciones (características, planes, contactenos) + botón inicio de sesio
+Modulo 1. Dashboard principal
+estadisticas y graficas de la informacion mas importantes
+Accesos rapidos a funciones frecuentes 
+Resumen de reservas y notificaciones.
+
+Modulo 2. Terceros
+CRUD de terceros (tipo de tercero, tipo de persona, tipo de contribuyente, tipo de identificacion, numero de identificación, primer nombre , segundo nombre, primer apellido, segundo apellido, razón social, dirección, pais, departamento, municipio, teléfono, movil , email)
+CRUD de unidades habitacionales (tipo de unidad, código unidad, propietario, área, coeficiente, cuota administración, parqueadero?, cuota parquedero, intereses?, estado de ocupacion )
+Integración con contabilidad
+
+Modulo 3. Contabilidad
+Plan unico de Cuentas (PUC) configurable con estructura (codigo;clase;grupo;cuenta;subcuenta;auxiliar;nombre;nivel;estado;es debito?;nombre de clase; registra tercero)
+Contabilización integrada desde los modulos (facturacion, tesoreria, nomina, compras) basada en Plan unico de Cuentas
+Registro, edición y eliminación de transacciones contables.
+CRUD de periodos contables.
+Gestión de tipos de transacción y documentos fuente.
+Impuestos , Calculo de retenciones y obligaciones legales
+conciliacion bancarias automática y validación de asientos
+informacion exogena
+NIIF
+Reportes con filtro por tercero o cuenta (balance de prueba, Balance general, Estado de resultados, libros auxiliares, Flujo de efectivo, Libro diario, libro mayor)
+Auditoría y trazabilidad de cambios.

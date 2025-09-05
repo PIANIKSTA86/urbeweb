@@ -1,0 +1,7 @@
+clase,grupo,cuenta,subcuenta,auxiliar,codigo,nombre,nivel,tipo
+1,1,1000,0,0,1000,Activo,1,activo
+1,1,1100,0,0,1100,Activo Corriente,2,activo
+1,1,1110,0,0,1110,Caja,3,activo
+1,1,1200,0,0,1200,Activo No Corriente,2,activo
+2,2,2000,0,0,2000,Pasivo,1,pasivo
+2,2,2100,0,0,2100,Pasivo Corriente,2,pasivo

@@ -1,0 +1,9 @@
+clase,grupo,cuenta,subcuenta,auxiliar,nombre,tipo,nivel,padre_id,descripcion,estado,codigo,registra_tercero,nombre_clase
+1,11,1105,110505,,Caja General,activo,4,1,Caja principal para manejo de efectivo,1,1105,0,Clase 1
+1,11,1105,110510,,Caja Menor,activo,4,1,Caja para gastos menores,1,1105,0,Clase 1
+1,11,1110,111005,,Bancos,activo,4,1,Cuentas bancarias,1,1110,0,Clase 1
+2,21,2105,210505,,Proveedores Nacionales,pasivo,4,2,Obligaciones con proveedores nacionales,1,2105,0,Clase 2
+3,31,3105,310505,,Capital Social,patrimonio,4,3,Aportes de los socios,1,3105,0,Clase 3
+4,41,4105,410505,,Ingresos por ventas,ingreso,4,4,Ventas de productos o servicios,1,4105,0,Clase 4
+5,51,5105,510505,,Gastos de administración,gasto,4,4,Gastos administrativos,1,5105,0,Clase 5
+6,61,6105,610505,,Costo de ventas,costo,4,6,Costos asociados a la venta,1,6105,0,Clase 6

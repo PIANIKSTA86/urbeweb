@@ -1,0 +1,10 @@
+
+clase,grupo,cuenta,subcuenta,auxiliar,codigo,nombre,tipo,nivel,padre_id,descripcion
+1,11,1105,110505,,110505,Caja General,activo,5,,Caja principal para manejo de efectivo
+1,11,1105,110510,,110510,Caja Menor,activo,5,,Caja para gastos menores
+1,11,1110,111005,,111005,Bancos,activo,5,,Cuentas bancarias
+2,21,2105,210505,,210505,Proveedores Nacionales,pasivo,5,,Obligaciones con proveedores nacionales
+3,31,3105,310505,,310505,Capital Social,patrimonio,5,,Aportes de los socios
+4,41,4105,410505,,410505,Ingresos por ventas,ingreso,5,,Ventas de productos o servicios
+5,51,5105,510505,,510505,Gastos de administración,gasto,5,,Gastos administrativos
+6,61,6105,610505,,610505,Costo de ventas,costo,5,,Costos asociados a la venta

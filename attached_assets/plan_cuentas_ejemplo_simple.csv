@@ -1,0 +1,7 @@
+codigo,nombre,grupo,nivel
+1000,Activo,1,1
+1100,Activo Corriente,1,2
+1110,Caja,1,3
+1200,Activo No Corriente,1,2
+2000,Pasivo,2,1
+2100,Pasivo Corriente,2,2

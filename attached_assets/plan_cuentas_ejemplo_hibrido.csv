@@ -1,0 +1,9 @@
+codigo,nombre,tipo,nivel,padre_codigo,descripcion,estado,es_debito,registra_tercero
+11050501,Caja General,activo,4,110505,Caja principal para manejo de efectivo,1,1,0
+11051001,Caja Menor,activo,4,110510,Caja para gastos menores,1,1,0
+11100501,Bancos,activo,4,111005,Cuentas bancarias,1,1,0
+21050501,Proveedores Nacionales,pasivo,4,210505,Obligaciones con proveedores nacionales,1,0,1
+31050501,Capital Social,patrimonio,4,310505,Aportes de los socios,1,0,1
+41050501,Ingresos por ventas,ingreso,4,410505,Ventas de productos o servicios,1,0,1
+51050501,Gastos de administración,gasto,4,510505,Gastos administrativos,1,1,1
+61050501,Costo de ventas,orden,4,610505,Costos asociados a la venta,1,1,1

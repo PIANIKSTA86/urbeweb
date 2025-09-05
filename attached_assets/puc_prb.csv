@@ -1,0 +1,10 @@
+clase,grupo,cuenta,subcuenta,auxiliar,nombre,tipo,nivel,padre_id,descripcion,estado,codigo,es_debito,nombre_clase,registra_tercero
+1,,,,,ACTIVO ,activo,1,1,"Descripcion.Recursos y bienes de la empresa con los que espera generar beneficios futuros.
+ Nat. Debito
+ Forma de Uso. Se carga (debito) cuando se incrementan los activos y se abona (credito) cuando disminuyen.",1,1,1,Clase 1,0
+1,11,,,,DISPONIBLE ,activo,2,1,Descripcion.Efectivo y equivalentes de efectivo disponibles de inmediato. Nat. Debito Forma de Uso. Se utiliza para controlar el efectivo y saldos bancarios.,1,11,1,Clase 1,0
+1,11,05,,,CAJA ,activo,3,1,Descripcion.Dinero en efectivo disponible. Nat. Debito Forma de Uso. Registra entradas y salidas de efectivo en caja.,1,1105,1,Clase 1,0
+1,11,05,05,,CAJA GENERAL ,activo,4,1,,1,110505,1,Clase 1,0
+1,11,05,05,01,Caja General,activo,5,1,,1,11050501,1,Clase 1,1
+1,11,05,10,,CAJAS MENORES ,activo,4,1,,0,110510,1,Clase 1,0
+1,11,05,10,01,Cajas Menores ,activo,5,1,,0,11051001,1,Clase 1,1

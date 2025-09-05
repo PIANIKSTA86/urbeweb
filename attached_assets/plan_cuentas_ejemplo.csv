@@ -1,0 +1,9 @@
+clase,grupo,cuenta,subcuenta,auxiliar,nombre,tipo,nivel,padre_id,descripcion,estado,codigo,es_debito,nombre_clase,registra_tercero
+1,11,05,05,,Caja General,activo,4,1,Caja principal para manejo de efectivo,activa,110505,1,activo,0
+1,11,05,10,,Caja Menor,activo,4,1,Caja para gastos menores,activa,110510,1,activo,0
+1,11,10,05,,Bancos,activo,4,1,Cuentas bancarias,activa,111005,1,activo,0
+2,21,05,05,,Proveedores Nacionales,pasivo,4,2,Obligaciones con proveedores nacionales,activa,210505,0,pasivo,0
+3,31,05,05,,Capital Social,patrimonio,4,3,Aportes de los socios,activa,310505,0,patrimonio,0
+4,41,05,05,,Ingresos por ventas,ingreso,4,4,Ventas de productos o servicios,activa,410505,0,ingreso,0
+5,51,05,05,,Gastos de administración,gasto,4,4,Gastos administrativos,activa,510505,1,gasto,0
+6,61,05,05,,Costo de ventas,costo,4,6,Costos asociados a la venta,activa,610505,1,costo,0
