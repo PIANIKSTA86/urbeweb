@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Trash } from "lucide-react";
+import { Trash, FileText, Printer, Shield } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 import { Select, SelectTrigger, SelectContent, SelectItem } from "@/components/ui/select";
@@ -134,7 +134,7 @@ export default function ModalTransaccion({ open, onClose, onSave, tercero, onTer
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-full" style={{ minWidth: 350, maxWidth: '98vw', overflowX: 'auto' }}>
+      <DialogContent className="max-w-full" style={{ minWidth: 350, maxWidth: '75vw', overflowX: 'auto' }}>
         <DialogHeader>
           <DialogTitle>Nueva Transacción</DialogTitle>
         </DialogHeader>
@@ -164,25 +164,23 @@ export default function ModalTransaccion({ open, onClose, onSave, tercero, onTer
               </Select>
             </div>
             <div className="flex flex-col">
-              <label>Número</label>
+              <label className="flex items-center gap-2">
+                Numeracion
+                <Checkbox
+                  checked={autoNumeracion}
+                  onCheckedChange={(v) => setAutoNumeracion(!!v)}
+                  className="ml-2"
+                />
+                <span className="ml-1 text-sm">Auto</span>
+              </label>
               <Input
                 type="number"
                 value={numeracion}
                 onChange={(e) => handleChangeNumeracion(e.target.value)}
                 disabled={autoNumeracion}
-                className="w-24"
+                className="w-36"
               />
               {numeracionError && <p className="text-red-500 text-sm">{numeracionError}</p>}
-            </div>
-            <div className="flex flex-col justify-end">
-              <label className="invisible">Check</label>
-              <div className="flex items-center h-10">
-                <Checkbox
-                  checked={autoNumeracion}
-                  onCheckedChange={(v) => setAutoNumeracion(!!v)}
-                />
-                <span className="ml-2 text-sm">Numeración automática</span>
-              </div>
             </div>
             <div className="flex flex-col">
               <label>Fecha transacción</label>
@@ -202,7 +200,7 @@ export default function ModalTransaccion({ open, onClose, onSave, tercero, onTer
                   onChange={e => setUnicoTercero(e.target.checked)}
                   className="ml-2"
                 />
-                <span className="text-xs">Un único tercero para toda la transacción</span>
+                <span className="text-xs">Unico para toda la transacción</span>
               </label>
               <BuscadorTerceros
                 value={terceroLocal}
@@ -218,15 +216,15 @@ export default function ModalTransaccion({ open, onClose, onSave, tercero, onTer
           {/* Segunda sección: botones y descripción */}
           <div className="flex gap-4 mb-4 items-end flex-wrap">
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setShowCrearCuenta(true)}>Nueva cuenta</Button>
-              <Button variant="outline" onClick={() => setShowCrearTercero(true)}>Nuevo tercero</Button>
+              <Button className="bg-primary text-white px-4 py-2 rounded mb-4 hover:bg-blue-700 transition" onClick={() => setShowCrearCuenta(true)}>Nueva cuenta</Button>
+              <Button className="bg-primary text-white px-4 py-2 rounded mb-4 hover:bg-blue-700 transition" onClick={() => setShowCrearTercero(true)}>Nuevo tercero</Button>
             </div>
             <div className="flex-1 flex flex-col">
               <label>Descripción</label>
               <textarea
                 value={descripcion}
                 onChange={e => setDescripcion(e.target.value)}
-                className="w-full min-h-[60px] max-h-[120px] border rounded px-2 py-1 resize-vertical"
+                className="w-full min-h-[38px] max-h-[120px] border rounded px-2 py-1 resize-vertical"
                 style={{ fontSize: '1rem' }}
               />
             </div>
@@ -290,11 +288,17 @@ export default function ModalTransaccion({ open, onClose, onSave, tercero, onTer
           </div>
           {/* Cuarta sección: acciones finales */}
           <div className="flex flex-wrap gap-2 justify-end items-end mt-6">
-            <Button variant="outline" className="mb-2">Guardar borrador</Button>
+            <Button variant="outline" className="mb-2 p-3 bg-orange-100 hover:bg-orange-200 border-orange-300" title="Imprimir">
+              <Printer className="w-8 h-8 text-orange-500" />
+            </Button>
+            <Button variant="outline" className="mb-2 p-3 bg-green-100 hover:bg-green-200 border-green-300" title="Exportar PDF">
+              <FileText className="w-8 h-8 text-green-600" />
+            </Button>
+            <Button variant="outline" className="mb-2 p-3 bg-blue-100 hover:bg-blue-200 border-blue-300" title="Auditoría">
+              <Shield className="w-8 h-8 text-blue-600" />
+            </Button>
+            <Button className="bg-orange-500 text-white px-4 py-2 rounded mb-2 hover:bg-orange-600 transition">Guardar borrador</Button>
             <Button className="bg-green-600 text-white px-4 py-2 rounded mb-2 hover:bg-green-700 transition">Aprobar / Contabilizar</Button>
-            <Button variant="destructive" className="mb-2">Anular</Button>
-            <Button variant="outline" className="mb-2">Imprimir / Exportar</Button>
-            <Button variant="outline" className="mb-2">Auditoría</Button>
             <Button className="bg-red-600 text-white px-4 py-2 rounded mb-2 hover:bg-red-700 transition" onClick={onClose}>Cancelar</Button>
           </div>
           {/* Modal para crear cuenta PUC (overlay sobre el modal de transacción) */}
