@@ -34,6 +34,7 @@ export const importPlanCuentas = [
               estado: cuenta.estado !== undefined && cuenta.estado !== '' ? parseInt(cuenta.estado.trim()) : 1,
               es_debito: cuenta.es_debito !== undefined && cuenta.es_debito !== '' ? parseInt(cuenta.es_debito.trim()) : null,
               registra_tercero: cuenta.registra_tercero !== undefined && cuenta.registra_tercero !== '' ? parseInt(cuenta.registra_tercero.trim()) : 0,
+              registra_documento: cuenta.registra_documento !== undefined && cuenta.registra_documento !== '' ? parseInt(cuenta.registra_documento.trim()) : 0,
               fecha_creacion: cuenta.fecha_creacion || new Date(),
             });
           } catch (err) {
@@ -116,7 +117,8 @@ export async function createCuentaPUC(req, res) {
       descripcion,
       estado,
       es_debito,
-      registra_tercero
+      registra_tercero,
+      registra_documento
     } = req.body;
     const nuevaCuenta = {
       codigo,
@@ -128,6 +130,7 @@ export async function createCuentaPUC(req, res) {
       estado: estado !== undefined && estado !== '' ? parseInt(estado) : 1,
       es_debito: es_debito !== undefined && es_debito !== '' ? parseInt(es_debito) : null,
       registra_tercero: registra_tercero !== undefined && registra_tercero !== '' ? parseInt(registra_tercero) : 0,
+      registra_documento: registra_documento !== undefined && registra_documento !== '' ? parseInt(registra_documento) : 0,
       fecha_creacion: new Date(),
     };
     const resultado = await db.insert(planCuentas).values(nuevaCuenta);
@@ -150,7 +153,8 @@ export async function updateCuentaPUC(req, res) {
       descripcion,
       estado,
       es_debito,
-      registra_tercero
+      registra_tercero,
+      registra_documento
     } = req.body;
     const datosActualizados = {
       codigo,
@@ -162,6 +166,7 @@ export async function updateCuentaPUC(req, res) {
       estado: estado !== undefined && estado !== '' ? parseInt(estado) : 1,
       es_debito: es_debito !== undefined && es_debito !== '' ? parseInt(es_debito) : null,
       registra_tercero: registra_tercero !== undefined && registra_tercero !== '' ? parseInt(registra_tercero) : 0,
+      registra_documento: registra_documento !== undefined && registra_documento !== '' ? parseInt(registra_documento) : 0,
       updated_at: new Date(),
     };
     const resultado = await db.update(planCuentas).set(datosActualizados).where({ id });

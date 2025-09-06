@@ -9,6 +9,7 @@ import TiposTransaccionConfig from "@/components/contabilidad/TiposTransaccionCo
 import PrefijosConfig from "@/components/contabilidad/PrefijosConfig";
 import PeriodosPage from "./periodos";
 import Modal from "@/components/ui/modal";
+import { ModalCrearCuentaPUC } from "@/components/contabilidad/ModalCrearCuentaPUC";
 import { SidebarNew } from "@/components/layout/sidebar-new";
 
 interface PlanCuenta {
@@ -325,63 +326,19 @@ const Contabilidad: React.FC = () => {
                 </table>
               </div>
             )}
-            {/* Modal crear cuenta */}
+            {/* Modal crear cuenta (nuevo UX/UI) */}
             {showCreateModal && (
-              <Modal onClose={() => setShowCreateModal(false)}>
-                <form
-                  className="p-6"
-                  onSubmit={async (e) => {
-                    e.preventDefault();
-                    const formData = new FormData(e.target as HTMLFormElement);
-                    const res = await fetch("/api/contabilidad/puc", {
-                      method: "POST",
-                      body: JSON.stringify(Object.fromEntries(formData)),
-                      headers: { "Content-Type": "application/json" },
-                    });
-                    if (res.ok) {
-                      alert("Cuenta creada correctamente");
-                      setShowCreateModal(false);
-                      setLoadingPuc(true);
-                      fetch("/api/contabilidad/puc")
-                        .then((res) => res.json())
-                        .then((data) => setPuc(data))
-                        .finally(() => setLoadingPuc(false));
-                    } else {
-                      alert("Error al crear la cuenta");
-                    }
-                  }}
-                >
-                  <h3 className="font-semibold mb-4 text-lg">Crear cuenta individual</h3>
-                  <input name="codigo" placeholder="Código" required className="border p-2 rounded mb-2 w-full" />
-                  <input name="nombre" placeholder="Nombre" required className="border p-2 rounded mb-2 w-full" />
-                  <select name="tipo" required className="border p-2 rounded mb-2 w-full">
-                    <option value="">Tipo</option>
-                    <option value="activo">Activo</option>
-                    <option value="pasivo">Pasivo</option>
-                    <option value="patrimonio">Patrimonio</option>
-                    <option value="ingreso">Ingreso</option>
-                    <option value="gasto">Gasto</option>
-                    <option value="orden">Orden</option>
-                  </select>
-                  <input name="nivel" type="number" min="1" max="10" placeholder="Nivel" required className="border p-2 rounded mb-2 w-full" />
-                  <input name="padre_codigo" placeholder="Padre Código" className="border p-2 rounded mb-2 w-full" />
-                  <textarea name="descripcion" placeholder="Descripción" className="border p-2 rounded mb-2 w-full" />
-                  <select name="estado" className="border p-2 rounded mb-2 w-full">
-                    <option value="1">Activo</option>
-                    <option value="0">Inactivo</option>
-                  </select>
-                  <select name="es_debito" className="border p-2 rounded mb-2 w-full">
-                    <option value="">¿Es Débito?</option>
-                    <option value="1">Sí</option>
-                    <option value="0">No</option>
-                  </select>
-                  <select name="registra_tercero" className="border p-2 rounded mb-4 w-full">
-                    <option value="0">No registra tercero</option>
-                    <option value="1">Registra tercero</option>
-                  </select>
-                  <button type="submit" className="bg-primary text-primary-foreground px-4 py-2 rounded w-full">Crear Cuenta</button>
-                </form>
-              </Modal>
+              <ModalCrearCuentaPUC
+                isOpen={showCreateModal}
+                onClose={() => setShowCreateModal(false)}
+                onCreated={() => {
+                  setLoadingPuc(true);
+                  fetch("/api/contabilidad/puc")
+                    .then((res) => res.json())
+                    .then((data) => setPuc(data))
+                    .finally(() => setLoadingPuc(false));
+                }}
+              />
             )}
             {/* Modal importar PUC */}
             {showImportModal && (
