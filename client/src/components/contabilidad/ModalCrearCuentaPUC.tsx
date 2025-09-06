@@ -1,4 +1,5 @@
 import { useForm, Controller } from "react-hook-form";
+import { useToast } from "@/components/ui/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,14 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useEffect } from "react";
 
-interface ModalCrearCuentaPUCProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onCreated?: () => void;
-}
-
-export function ModalCrearCuentaPUC({ isOpen, onClose, onCreated, puc = [] }: ModalCrearCuentaPUCProps & { puc?: any[] }) {
+function ModalCrearCuentaPUC({ isOpen, onClose, onCreated, puc }: ModalCrearCuentaPUCProps & { puc: any[] }) {
   const { register, handleSubmit, reset, setValue, control, formState: { isSubmitting } } = useForm();
+  const { toast } = useToast();
   const [padreCuenta, setPadreCuenta] = useState<any>(null);
   const [errorCodigo, setErrorCodigo] = useState<string>("");
 
@@ -29,7 +25,6 @@ export function ModalCrearCuentaPUC({ isOpen, onClose, onCreated, puc = [] }: Mo
     const codigo = String(data.codigo).trim();
     if (puc.some((c: any) => c.codigo === codigo)) {
       setErrorCodigo("El código ya existe en el plan de cuentas.");
-      window.alert("[VALIDACIÓN] Código ya existe en el plan de cuentas.");
       console.warn("[VALIDACIÓN] Código ya existe:", codigo);
       return;
     }
@@ -37,14 +32,12 @@ export function ModalCrearCuentaPUC({ isOpen, onClose, onCreated, puc = [] }: Mo
     if (padreCuenta) {
       if (!codigo.startsWith(padreCuenta.codigo)) {
         setErrorCodigo("El código debe comenzar con el código de la cuenta padre.");
-        window.alert("[VALIDACIÓN] El código debe comenzar con el código de la cuenta padre.");
         console.warn("[VALIDACIÓN] Código no inicia con padre:", codigo, padreCuenta.codigo);
         return;
       }
       const dif = codigo.length - padreCuenta.codigo.length;
       if (dif !== 2) {
         setErrorCodigo("El código debe tener exactamente 2 dígitos más que el código de la cuenta padre.");
-        window.alert("[VALIDACIÓN] El código debe tener exactamente 2 dígitos más que el código de la cuenta padre.");
         console.warn("[VALIDACIÓN] Longitud incorrecta:", codigo, padreCuenta.codigo);
         return;
       }
@@ -71,7 +64,6 @@ export function ModalCrearCuentaPUC({ isOpen, onClose, onCreated, puc = [] }: Mo
     else if (codigo.length === 6) nivel = 4;
     else if (codigo.length === 8) nivel = 5;
     const payload = { ...data, tipo, nivel, registra_documento: data.registra_documento };
-    window.alert("[DEBUG] Enviando payload: " + JSON.stringify(payload));
     console.log("[DEBUG] Enviando payload:", payload);
     try {
       const res = await fetch('/api/contabilidad/puc', {
@@ -79,28 +71,29 @@ export function ModalCrearCuentaPUC({ isOpen, onClose, onCreated, puc = [] }: Mo
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      window.alert("[DEBUG] Respuesta recibida. Status: " + res.status);
       console.log("[DEBUG] Respuesta recibida:", res);
       if (res.ok) {
-        window.alert("Cuenta creada correctamente");
         if (onCreated) onCreated();
         reset();
         onClose();
+        toast({
+          title: "Cuenta creada",
+          description: "La cuenta fue creada exitosamente.",
+          status: "success",
+        });
       } else {
         const errorData = await res.json().catch(() => ({}));
         const msg = errorData?.error || errorData?.mensaje || 'Error al crear la cuenta';
-        window.alert("[ERROR API] " + msg);
         console.error("[ERROR API]:", errorData);
       }
     } catch (err) {
-      window.alert('[ERROR RED] Error de conexión o red');
       console.error("[ERROR RED]:", err);
     }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-  <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Crear Nueva Cuenta PUC</DialogTitle>
         </DialogHeader>
@@ -226,3 +219,5 @@ export function ModalCrearCuentaPUC({ isOpen, onClose, onCreated, puc = [] }: Mo
     </Dialog>
   );
 }
+
+export { ModalCrearCuentaPUC };
