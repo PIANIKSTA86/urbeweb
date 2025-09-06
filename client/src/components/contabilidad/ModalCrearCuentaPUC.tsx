@@ -1,4 +1,4 @@
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,6 +6,7 @@ import { BuscadorCuentasPadre } from "./BuscadorCuentasPadre";
 import { useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { useEffect } from "react";
 
 interface ModalCrearCuentaPUCProps {
   isOpen: boolean;
@@ -13,20 +14,44 @@ interface ModalCrearCuentaPUCProps {
   onCreated?: () => void;
 }
 
-export function ModalCrearCuentaPUC({ isOpen, onClose, onCreated }: ModalCrearCuentaPUCProps) {
-  const { register, handleSubmit, reset, setValue, formState: { isSubmitting } } = useForm();
+export function ModalCrearCuentaPUC({ isOpen, onClose, onCreated, puc = [] }: ModalCrearCuentaPUCProps & { puc?: any[] }) {
+  const { register, handleSubmit, reset, setValue, control, formState: { isSubmitting } } = useForm();
   const [padreCuenta, setPadreCuenta] = useState<any>(null);
+  const [errorCodigo, setErrorCodigo] = useState<string>("");
 
   const onSubmit = async (data: any) => {
+    setErrorCodigo("");
     // Si hay padreCuenta, usar su código como padre_codigo
     if (padreCuenta) {
       data.padre_codigo = padreCuenta.codigo;
     }
-    // Determinar el tipo según el primer dígito del código
+    // Validación 1: que el código no exista
     const codigo = String(data.codigo).trim();
-    const primerDigito = codigo.charAt(0);
+    if (puc.some((c: any) => c.codigo === codigo)) {
+      setErrorCodigo("El código ya existe en el plan de cuentas.");
+      window.alert("[VALIDACIÓN] Código ya existe en el plan de cuentas.");
+      console.warn("[VALIDACIÓN] Código ya existe:", codigo);
+      return;
+    }
+    // Validación 2: si hay padre, el código debe empezar con el código del padre y tener 2 dígitos más
+    if (padreCuenta) {
+      if (!codigo.startsWith(padreCuenta.codigo)) {
+        setErrorCodigo("El código debe comenzar con el código de la cuenta padre.");
+        window.alert("[VALIDACIÓN] El código debe comenzar con el código de la cuenta padre.");
+        console.warn("[VALIDACIÓN] Código no inicia con padre:", codigo, padreCuenta.codigo);
+        return;
+      }
+      const dif = codigo.length - padreCuenta.codigo.length;
+      if (dif !== 2) {
+        setErrorCodigo("El código debe tener exactamente 2 dígitos más que el código de la cuenta padre.");
+        window.alert("[VALIDACIÓN] El código debe tener exactamente 2 dígitos más que el código de la cuenta padre.");
+        console.warn("[VALIDACIÓN] Longitud incorrecta:", codigo, padreCuenta.codigo);
+        return;
+      }
+    }
+    // Determinar el tipo según el primer dígito del código
     let tipo = "";
-    switch (primerDigito) {
+    switch (codigo.charAt(0)) {
       case "1": tipo = "activo"; break;
       case "2": tipo = "pasivo"; break;
       case "3": tipo = "patrimonio"; break;
@@ -46,21 +71,30 @@ export function ModalCrearCuentaPUC({ isOpen, onClose, onCreated }: ModalCrearCu
     else if (codigo.length === 6) nivel = 4;
     else if (codigo.length === 8) nivel = 5;
     const payload = { ...data, tipo, nivel, registra_documento: data.registra_documento };
+    window.alert("[DEBUG] Enviando payload: " + JSON.stringify(payload));
+    console.log("[DEBUG] Enviando payload:", payload);
     try {
       const res = await fetch('/api/contabilidad/puc', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
+      window.alert("[DEBUG] Respuesta recibida. Status: " + res.status);
+      console.log("[DEBUG] Respuesta recibida:", res);
       if (res.ok) {
+        window.alert("Cuenta creada correctamente");
         if (onCreated) onCreated();
         reset();
         onClose();
       } else {
-        alert('Error al crear la cuenta');
+        const errorData = await res.json().catch(() => ({}));
+        const msg = errorData?.error || errorData?.mensaje || 'Error al crear la cuenta';
+        window.alert("[ERROR API] " + msg);
+        console.error("[ERROR API]:", errorData);
       }
-    } catch {
-      alert('Error de conexión');
+    } catch (err) {
+      window.alert('[ERROR RED] Error de conexión o red');
+      console.error("[ERROR RED]:", err);
     }
   };
 
@@ -91,6 +125,7 @@ export function ModalCrearCuentaPUC({ isOpen, onClose, onCreated }: ModalCrearCu
           <div>
             <label className="block font-medium mb-1">Código *</label>
             <Input {...register('codigo', { required: true })} type="text" placeholder="Código" />
+            {errorCodigo && <div className="text-red-500 text-xs mt-1">{errorCodigo}</div>}
           </div>
           <div className="md:col-span-2">
             <label className="block font-medium mb-1">Descripción</label>
@@ -98,54 +133,91 @@ export function ModalCrearCuentaPUC({ isOpen, onClose, onCreated }: ModalCrearCu
           </div>
           <div>
             <label className="block font-medium mb-1">Estado *</label>
-            <Select defaultValue="1" {...register('estado', { required: true })}>
-              <SelectTrigger>
-                <SelectValue placeholder="Estado" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="1">Activo</SelectItem>
-                <SelectItem value="0">Inactivo</SelectItem>
-              </SelectContent>
-            </Select>
+            <Controller
+              name="estado"
+              control={control}
+              defaultValue="1"
+              rules={{ required: true }}
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Estado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">Activo</SelectItem>
+                    <SelectItem value="0">Inactivo</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </div>
           <div>
             <label className="block font-medium mb-1">¿Es Débito? *</label>
-            <Select {...register('es_debito', { required: true })}>
-              <SelectTrigger>
-                <SelectValue placeholder="¿Es Débito?" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="1">Sí</SelectItem>
-                <SelectItem value="0">No</SelectItem>
-              </SelectContent>
-            </Select>
+            <Controller
+              name="es_debito"
+              control={control}
+              defaultValue="1"
+              rules={{ required: true }}
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="¿Es Débito?" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">Sí</SelectItem>
+                    <SelectItem value="0">No</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </div>
           <div>
             <label className="block font-medium mb-1">Registra tercero *</label>
-            <Select {...register('registra_tercero', { required: true })}>
-              <SelectTrigger>
-                <SelectValue placeholder="Registra tercero" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="1">Sí</SelectItem>
-                <SelectItem value="0">No</SelectItem>
-              </SelectContent>
-            </Select>
+            <Controller
+              name="registra_tercero"
+              control={control}
+              defaultValue="1"
+              rules={{ required: true }}
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Registra tercero" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">Sí</SelectItem>
+                    <SelectItem value="0">No</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </div>
           <div>
             <label className="block font-medium mb-1">Documento de cruce *</label>
-            <Select {...register('registra_documento', { required: true })}>
-              <SelectTrigger>
-                <SelectValue placeholder="Documento de cruce" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="1">Sí</SelectItem>
-                <SelectItem value="0">No</SelectItem>
-              </SelectContent>
-            </Select>
+            <Controller
+              name="registra_documento"
+              control={control}
+              defaultValue="1"
+              rules={{ required: true }}
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Documento de cruce" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">Sí</SelectItem>
+                    <SelectItem value="0">No</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </div>
           <div className="md:col-span-2">
-            <Button type="submit" className="w-full" disabled={isSubmitting}>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={isSubmitting}
+              onClick={() => console.log('[DEBUG] Botón Crear cuenta clickeado')}
+            >
               {isSubmitting ? 'Creando...' : 'Crear cuenta'}
             </Button>
           </div>

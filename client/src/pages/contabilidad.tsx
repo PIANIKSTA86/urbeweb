@@ -338,6 +338,7 @@ const Contabilidad: React.FC = () => {
                     .then((data) => setPuc(data))
                     .finally(() => setLoadingPuc(false));
                 }}
+                puc={puc}
               />
             )}
             {/* Modal importar PUC */}
