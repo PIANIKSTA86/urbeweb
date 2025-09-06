@@ -264,10 +264,20 @@ export default function ModalTransaccion({ open, onClose, onSave, tercero, onTer
                       <Input value={m.documentoCruce} onChange={(e) => handleMovimientoChange(i, "documentoCruce", e.target.value)} />
                     </td>
                     <td className="border p-1">
-                      <Input type="number" value={m.debito} onChange={(e) => handleMovimientoChange(i, "debito", e.target.value)} />
+                      <Input
+                        type="number"
+                        value={m.debito}
+                        onChange={(e) => handleMovimientoChange(i, "debito", e.target.value)}
+                        disabled={!!m.credito && Number(m.credito) !== 0}
+                      />
                     </td>
                     <td className="border p-1">
-                      <Input type="number" value={m.credito} onChange={(e) => handleMovimientoChange(i, "credito", e.target.value)} />
+                      <Input
+                        type="number"
+                        value={m.credito}
+                        onChange={(e) => handleMovimientoChange(i, "credito", e.target.value)}
+                        disabled={!!m.debito && Number(m.debito) !== 0}
+                      />
                     </td>
                     <td className="border p-1 text-center">
                       <Button variant="ghost" size="icon" onClick={() => setMovimientos(movs => movs.filter((_, idx) => idx !== i))} disabled={movimientos.length === 1}>
@@ -281,21 +291,21 @@ export default function ModalTransaccion({ open, onClose, onSave, tercero, onTer
             <Button variant="outline" onClick={handleAddRow} className="mt-2">+ Agregar fila</Button>
           </div>
           {/* Totales */}
-          <div className="flex justify-end gap-4 mt-4 text-sm">
-            <span>Total Débito: {totalDebito}</span>
-            <span>Total Crédito: {totalCredito}</span>
+          <div className="flex justify-end gap-4 mt-4 text-base">
+            <span className="font-medium">Total Débito: {totalDebito}</span>
+            <span className="font-medium">Total Crédito: {totalCredito}</span>
             {!balanceado && <span className="text-red-500">⚠ No balanceado</span>}
           </div>
           {/* Cuarta sección: acciones finales */}
           <div className="flex flex-wrap gap-2 justify-end items-end mt-6">
             <Button variant="outline" className="mb-2 p-3 bg-orange-100 hover:bg-orange-200 border-orange-300" title="Imprimir">
-              <Printer className="w-8 h-8 text-orange-500" />
+              <Printer className="w-14 h-14 text-orange-500" />
             </Button>
             <Button variant="outline" className="mb-2 p-3 bg-green-100 hover:bg-green-200 border-green-300" title="Exportar PDF">
-              <FileText className="w-8 h-8 text-green-600" />
+              <FileText className="w-10 h-10 text-green-600" />
             </Button>
             <Button variant="outline" className="mb-2 p-3 bg-blue-100 hover:bg-blue-200 border-blue-300" title="Auditoría">
-              <Shield className="w-8 h-8 text-blue-600" />
+              <Shield className="w-10 h-10 text-blue-600" />
             </Button>
             <Button className="bg-orange-500 text-white px-4 py-2 rounded mb-2 hover:bg-orange-600 transition">Guardar borrador</Button>
             <Button className="bg-green-600 text-white px-4 py-2 rounded mb-2 hover:bg-green-700 transition">Aprobar / Contabilizar</Button>
