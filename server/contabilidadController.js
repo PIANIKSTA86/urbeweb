@@ -1,8 +1,86 @@
+
+import { comprobantesContables, comprobanteDetalle, terceros, auditoria, planCuentas } from '../shared/schema.js';
+import { eq } from 'drizzle-orm';
+
+// Crear comprobante contable con movimientos y auditoría
+export async function createComprobante(req, res) {
+  try {
+
+    let { numero, tipo, fecha, descripcion, usuario_id, movimientos } = req.body;
+    // Si fecha es string, convertir a Date
+    if (typeof fecha === 'string') {
+      fecha = new Date(fecha);
+    }
+
+    await db.transaction(async (trx) => {
+      // Validación básica
+      if (!numero || !tipo || !fecha || !Array.isArray(movimientos) || movimientos.length === 0) {
+        throw new Error('Datos incompletos para el comprobante.');
+      }
+
+      // Validar que todas las cuentas y terceros existen y sumar débitos/créditos
+      let totalDebito = 0, totalCredito = 0;
+      for (const mov of movimientos) {
+        const cuenta = await trx.select().from(planCuentas).where(eq(planCuentas.id, mov.cuenta_id));
+        if (!cuenta.length) {
+          throw new Error(`Cuenta no existe: ${mov.cuenta_id}`);
+        }
+        if (mov.tercero_id) {
+          const tercero = await trx.select().from(terceros).where(eq(terceros.id, mov.tercero_id));
+          if (!tercero.length) {
+            throw new Error(`Tercero no existe: ${mov.tercero_id}`);
+          }
+        }
+        if ((Number(mov.debito) > 0 && Number(mov.credito) > 0) || (Number(mov.debito) === 0 && Number(mov.credito) === 0)) {
+          throw new Error('Cada movimiento debe tener solo débito o solo crédito, nunca ambos o ninguno.');
+        }
+        totalDebito += Number(mov.debito || 0);
+        totalCredito += Number(mov.credito || 0);
+      }
+      if (totalDebito !== totalCredito) {
+        throw new Error('El comprobante no está balanceado.');
+      }
+
+      // TODO: Validar periodo contable abierto aquí si aplica
+
+
+
+  // Insertar comprobante y obtener id (MySQL: insertId)
+  const result = await trx.insert(comprobantesContables).values({ numero, tipo, fecha, descripcion, usuario_id, estado: 'activo' });
+  const comprobante_id = result.insertId || (Array.isArray(result) && result[0]?.insertId) || result;
+
+
+      // Insertar movimientos con el id correcto
+      for (const mov of movimientos) {
+        await trx.insert(comprobanteDetalle).values({
+          comprobante_id,
+          cuenta_id: mov.cuenta_id,
+          tercero_id: mov.tercero_id || null,
+          descripcion: mov.descripcion || descripcion,
+          debito: mov.debito || 0,
+          credito: mov.credito || 0
+        });
+      }
+
+      // Registrar auditoría
+      await trx.insert(auditoria).values({
+        usuario_id,
+        accion: 'crear_comprobante',
+        descripcion: `Creó comprobante #${numero} (${tipo})`,
+        fecha: new Date()
+      });
+
+  res.status(201).json({ comprobante_id });
+    });
+  } catch (err) {
+    console.error('Error al crear comprobante:', err);
+    res.status(500).json({ error: err.message || 'Error interno al crear comprobante' });
+  }
+}
 import fs from 'fs';
 import path from 'path';
 import { parse } from 'csv-parse';
 import multer from 'multer';
-import { planCuentas } from '../shared/schema.js';
 
 // Configuración de multer para subir archivos
 const upload = multer({ dest: 'uploads/' });

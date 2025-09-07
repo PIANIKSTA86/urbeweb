@@ -1,4 +1,7 @@
+
+
 import { useState, useEffect } from "react";
+import { useAuth } from "@/hooks/use-auth";
 import { Trash, FileText, Printer, Shield } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
@@ -51,10 +54,71 @@ interface ModalTransaccionProps {
   onTerceroChange?: (tercero: Tercero | null) => void;
 }
 
-export default function ModalTransaccion({ open, onClose, onSave, tercero, onTerceroChange }: ModalTransaccionProps) {
+function ModalTransaccion({ open, onClose, onSave, tercero, onTerceroChange }: ModalTransaccionProps) {
+  const { user } = useAuth();
   const [terceroLocal, setTerceroLocal] = useState<Tercero | null>(tercero || null);
   const [unicoTercero, setUnicoTercero] = useState<boolean>(true);
   const [showCrearCuenta, setShowCrearCuenta] = useState<boolean>(false);
+  // Estado para feedback de guardado
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+
+  // Función para enviar la transacción al backend
+  const handleAprobarContabilizar = async () => {
+    setError(null);
+    setSuccess(null);
+    if (!balanceado) {
+      setError('La transacción no está balanceada.');
+      return;
+    }
+    if (numeracionError) {
+      setError('Error en la numeración.');
+      return;
+    }
+    if (!fecha) {
+      setError('Debes seleccionar una fecha.');
+      return;
+    }
+    setLoading(true);
+    try {
+      // Construir movimientos para el backend
+      const movimientosBackend = movimientos.map(m => ({
+        cuenta_id: m.cuenta?.id,
+        tercero_id: m.tercero?.id || null,
+        descripcion: m.comentario || descripcion,
+        debito: Number(m.debito) || 0,
+        credito: Number(m.credito) || 0
+      }));
+      const body = {
+        numero: `${prefijo}-${numeracion}`,
+        tipo: tiposTransaccion.find(t => String(t.id) === tipoTransaccion)?.nombre || '',
+        fecha: typeof fecha === 'string' ? fecha : (fecha instanceof Date ? fecha.toISOString().substring(0, 10) : ''),
+        descripcion,
+        usuario_id: user?.id || 3,
+        movimientos: movimientosBackend
+      };
+      const res = await fetch('/api/contabilidad/comprobantes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error || 'Error al guardar la transacción');
+      } else {
+        setSuccess('Transacción guardada correctamente');
+        setTimeout(() => {
+          setSuccess(null);
+          onClose();
+        }, 1200);
+      }
+    } catch (err: any) {
+      setError('Error de red o inesperado');
+    } finally {
+      setLoading(false);
+    }
+  };
   const [puc, setPuc] = useState<Cuenta[]>([]);
   const [showCrearTercero, setShowCrearTercero] = useState<boolean>(false);
   useEffect(() => {
@@ -73,6 +137,10 @@ export default function ModalTransaccion({ open, onClose, onSave, tercero, onTer
   ]);
   const [fecha, setFecha] = useState<Date | undefined>(undefined);
 
+  // Estados para edición amigable de inputs de débito y crédito
+  const [editingCell, setEditingCell] = useState<{row: number, field: 'debito'|'credito'|null} | null>(null);
+  const [editingValue, setEditingValue] = useState<string>('');
+
   useEffect(() => {
     if (open) {
       fetch("/api/contabilidad/tipos-transaccion")
@@ -87,6 +155,8 @@ export default function ModalTransaccion({ open, onClose, onSave, tercero, onTer
     }
   }, [open]);
 
+
+  // Filtrar prefijos según el tipo de transacción seleccionado
   const prefijosFiltrados = prefijos.filter((p) => String(p.tipo_transaccion_id) === tipoTransaccion);
 
   useEffect(() => {
@@ -265,18 +335,83 @@ export default function ModalTransaccion({ open, onClose, onSave, tercero, onTer
                     </td>
                     <td className="border p-1">
                       <Input
-                        type="number"
-                        value={m.debito}
-                        onChange={(e) => handleMovimientoChange(i, "debito", e.target.value)}
+                        type="text"
+                        value={
+                          editingCell && editingCell.row === i && editingCell.field === 'debito'
+                            ? editingValue
+                            : m.debito === null || m.debito === undefined
+                              ? ''
+                              : Number(m.debito).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                        }
+                        onFocus={e => {
+                          setEditingCell({row: i, field: 'debito'});
+                          setEditingValue(
+                            m.debito === null || m.debito === undefined
+                              ? ''
+                              : m.debito.toString().replace('.', ',')
+                          );
+                        }}
+                        onChange={e => {
+                          if (editingCell && editingCell.row === i && editingCell.field === 'debito') {
+                            setEditingValue(e.target.value);
+                          } else {
+                            setEditingCell({row: i, field: 'debito'});
+                            setEditingValue(e.target.value);
+                          }
+                        }}
+                        onBlur={e => {
+                          // Permitir decimales y separador de miles
+                          let val = e.target.value.replace(/\./g, '').replace(/,/g, '.');
+                          val = val.replace(/[^\d.]/g, '');
+                          const parts = val.split('.');
+                          if (parts.length > 2) val = parts[0] + '.' + parts.slice(1).join('');
+                          handleMovimientoChange(i, "debito", val === '' ? '' : Number(val));
+                          setEditingCell(null);
+                          setEditingValue('');
+                        }}
                         disabled={!!m.credito && Number(m.credito) !== 0}
+                        inputMode="decimal"
+                        step="0.01"
                       />
                     </td>
                     <td className="border p-1">
                       <Input
-                        type="number"
-                        value={m.credito}
-                        onChange={(e) => handleMovimientoChange(i, "credito", e.target.value)}
+                        type="text"
+                        value={
+                          editingCell && editingCell.row === i && editingCell.field === 'credito'
+                            ? editingValue
+                            : m.credito === null || m.credito === undefined
+                              ? ''
+                              : Number(m.credito).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                        }
+                        onFocus={e => {
+                          setEditingCell({row: i, field: 'credito'});
+                          setEditingValue(
+                            m.credito === null || m.credito === undefined
+                              ? ''
+                              : m.credito.toString().replace('.', ',')
+                          );
+                        }}
+                        onChange={e => {
+                          if (editingCell && editingCell.row === i && editingCell.field === 'credito') {
+                            setEditingValue(e.target.value);
+                          } else {
+                            setEditingCell({row: i, field: 'credito'});
+                            setEditingValue(e.target.value);
+                          }
+                        }}
+                        onBlur={e => {
+                          let val = e.target.value.replace(/\./g, '').replace(/,/g, '.');
+                          val = val.replace(/[^\d.]/g, '');
+                          const parts = val.split('.');
+                          if (parts.length > 2) val = parts[0] + '.' + parts.slice(1).join('');
+                          handleMovimientoChange(i, "credito", val === '' ? '' : Number(val));
+                          setEditingCell(null);
+                          setEditingValue('');
+                        }}
                         disabled={!!m.debito && Number(m.debito) !== 0}
+                        inputMode="decimal"
+                        step="0.01"
                       />
                     </td>
                     <td className="border p-1 text-center">
@@ -292,8 +427,8 @@ export default function ModalTransaccion({ open, onClose, onSave, tercero, onTer
           </div>
           {/* Totales */}
           <div className="flex justify-end gap-4 mt-4 text-base">
-            <span className="font-medium">Total Débito: {totalDebito}</span>
-            <span className="font-medium">Total Crédito: {totalCredito}</span>
+            <span className="font-medium">Total Débito: {totalDebito.toLocaleString('es-CO')}</span>
+            <span className="font-medium">Total Crédito: {totalCredito.toLocaleString('es-CO')}</span>
             {!balanceado && <span className="text-red-500">⚠ No balanceado</span>}
           </div>
           {/* Cuarta sección: acciones finales */}
@@ -307,8 +442,17 @@ export default function ModalTransaccion({ open, onClose, onSave, tercero, onTer
             <Button variant="outline" className="mb-2 p-3 bg-blue-100 hover:bg-blue-200 border-blue-300" title="Auditoría">
               <Shield className="w-10 h-10 text-blue-600" />
             </Button>
-            <Button className="bg-orange-500 text-white px-4 py-2 rounded mb-2 hover:bg-orange-600 transition">Guardar borrador</Button>
-            <Button className="bg-green-600 text-white px-4 py-2 rounded mb-2 hover:bg-green-700 transition">Aprobar / Contabilizar</Button>
+            <Button className="bg-orange-500 text-white px-4 py-2 rounded mb-2 hover:bg-orange-600 transition" disabled>Guardar borrador</Button>
+            <Button
+              className="bg-green-600 text-white px-4 py-2 rounded mb-2 hover:bg-green-700 transition"
+              onClick={handleAprobarContabilizar}
+              disabled={loading}
+            >
+              {loading ? 'Guardando...' : 'Aprobar / Contabilizar'}
+            </Button>
+          {/* Feedback de error o éxito */}
+          {error && <div className="text-red-600 font-semibold mt-2">{error}</div>}
+          {success && <div className="text-green-600 font-semibold mt-2">{success}</div>}
             <Button className="bg-red-600 text-white px-4 py-2 rounded mb-2 hover:bg-red-700 transition" onClick={onClose}>Cancelar</Button>
           </div>
           {/* Modal para crear cuenta PUC (overlay sobre el modal de transacción) */}
@@ -337,5 +481,7 @@ export default function ModalTransaccion({ open, onClose, onSave, tercero, onTer
     </Dialog>
   );
 }
+
+export default ModalTransaccion;
 
 

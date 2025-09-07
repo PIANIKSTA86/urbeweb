@@ -1,3 +1,23 @@
+// Tabla comprobante_detalle
+export const comprobanteDetalle = mysqlTable("comprobante_detalle", {
+  id: int("id").primaryKey().autoincrement().notNull(),
+  comprobante_id: int("comprobante_id").notNull(),
+  cuenta_id: int("cuenta_id").notNull(),
+  tercero_id: int("tercero_id"),
+  descripcion: text("descripcion"),
+  debito: decimal("debito", { precision: 18, scale: 2 }).default("0.00"),
+  credito: decimal("credito", { precision: 18, scale: 2 }).default("0.00"),
+  created_at: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
+  updated_at: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
+});
+// Tabla de auditoría
+export const auditoria = mysqlTable("auditoria", {
+  id: int("id").primaryKey().autoincrement().notNull(),
+  usuario_id: int("usuario_id"),
+  accion: varchar("accion", { length: 100 }),
+  descripcion: varchar("descripcion", { length: 255 }),
+  fecha: datetime("fecha").default(sql`CURRENT_TIMESTAMP`),
+});
 import { sql } from "drizzle-orm";
 import {
   mysqlTable,

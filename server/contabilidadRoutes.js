@@ -1,11 +1,14 @@
-
 import express from 'express';
 import * as contabilidadController from './contabilidadController.js';
 import * as transaccionesController from './transaccionesController.js';
 import * as reportesController from './reportesController.js';
 import periodosRoutes from './periodosRoutes.js';
 
+
 const router = express.Router();
+
+// Endpoint para crear comprobante contable con movimientos
+router.post('/comprobantes', contabilidadController.createComprobante);
 
 // Endpoints para el Plan Único de Cuentas (PUC)
 router.get('/puc', contabilidadController.getCuentasPUC); // Obtener todas las cuentas

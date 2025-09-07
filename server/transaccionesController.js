@@ -2,7 +2,7 @@
 // Gestiona las operaciones CRUD sobre las transacciones
 
 import { db } from './db.ts';
-import { comprobantesContables, movimientosContables, planCuentas } from '../shared/schema.ts';
+import { comprobantesContables, movimientosContables, planCuentas, comprobanteDetalle } from '../shared/schema.ts';
 import { eq, and, like } from 'drizzle-orm';
 
 // Obtener todas las transacciones
@@ -28,8 +28,8 @@ export async function getTransacciones(req, res) {
       .limit(parseInt(pageSize)).offset(offset);
     // Para cada comprobante, obtener sus movimientos relacionados
     const comprobantesConMovimientos = await Promise.all(comprobantes.map(async (comprobante) => {
-      const movimientos = await db.select().from(movimientosContables)
-        .where(eq(movimientosContables.comprobanteId, comprobante.id));
+      const movimientos = await db.select().from(comprobanteDetalle)
+        .where(eq(comprobanteDetalle.comprobante_id, comprobante.id));
       return { ...comprobante, movimientos };
     }));
     // Obtener el total de comprobantes según filtros
