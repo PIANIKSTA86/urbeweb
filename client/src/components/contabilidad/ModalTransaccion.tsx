@@ -136,6 +136,8 @@ function ModalTransaccion({ open, onClose, onSave, tercero, onTerceroChange }: M
     { cuenta: null, tercero: null, documentoCruce: "", debito: 0, credito: 0, comentario: "" },
   ]);
   const [fecha, setFecha] = useState<Date | undefined>(undefined);
+  // Estado de la transacción (borrador o contabilizado)
+  const [estado, setEstado] = useState<'borrador' | 'contabilizado'>('borrador');
 
   // Estados para edición amigable de inputs de débito y crédito
   const [editingCell, setEditingCell] = useState<{row: number, field: 'debito'|'credito'|null} | null>(null);
@@ -199,7 +201,7 @@ function ModalTransaccion({ open, onClose, onSave, tercero, onTerceroChange }: M
 
   const handleSave = () => {
     if (!balanceado || numeracionError) return;
-    onSave({ tipoTransaccion: Number(tipoTransaccion), prefijo, numeracion, descripcion, movimientos, tercero: terceroLocal });
+    onSave({ tipoTransaccion: Number(tipoTransaccion), prefijo, numeracion, descripcion, movimientos, tercero: terceroLocal, estado });
   };
 
   return (
@@ -211,6 +213,13 @@ function ModalTransaccion({ open, onClose, onSave, tercero, onTerceroChange }: M
         <div style={{ overflowX: 'auto', width: '100%' }}>
           {/* Primera sección: datos principales */}
           <div className="flex gap-4 mb-4 items-end flex-wrap">
+            <div className="flex flex-col">
+              <label>Estado</label>
+              <select value={estado} onChange={e => setEstado(e.target.value as 'borrador' | 'contabilizado')} className="border p-2 rounded w-[160px]">
+                <option value="borrador">Borrador</option>
+                <option value="contabilizado">Contabilizado</option>
+              </select>
+            </div>
             <div className="flex flex-col">
               <label>Tipo de transacción</label>
               <Select value={tipoTransaccion} onValueChange={setTipoTransaccion}>

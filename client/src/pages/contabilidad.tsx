@@ -61,9 +61,13 @@ const Contabilidad: React.FC = () => {
   const [movPageSize, setMovPageSize] = useState(10);
   const [movTotal, setMovTotal] = useState(0);
   const [filterFecha, setFilterFecha] = useState("");
+  const [fechasDisponibles, setFechasDisponibles] = useState<string[]>([]);
   const [filterDescripcion, setFilterDescripcion] = useState("");
   const [movFilterTipoDocumento, setMovFilterTipoDocumento] = useState("");
+  const [tiposDocumento, setTiposDocumento] = useState<any[]>([]);
   const [movFilterEstado, setMovFilterEstado] = useState("");
+  const [periodos, setPeriodos] = useState<any[]>([]);
+  const [filterPeriodo, setFilterPeriodo] = useState("");
 
   // Handlers para crear, editar y eliminar transacciones
   const [showTransModal, setShowTransModal] = useState(false);
@@ -105,6 +109,48 @@ const Contabilidad: React.FC = () => {
       });
   };
 
+  // Cargar datos dinámicos para filtros
+  useEffect(() => {
+    if (activeTab === "movimientos") {
+      // Fechas disponibles
+      fetch("/api/contabilidad/transacciones/fechas")
+        .then(res => res.ok ? res.json() : [])
+        .then(data => setFechasDisponibles(Array.isArray(data) ? data : []));
+      // Tipos de documento
+      fetch("/api/contabilidad/tipos-transaccion")
+        .then(res => res.ok ? res.json() : [])
+        .then(data => setTiposDocumento(Array.isArray(data) ? data : []));
+      // Periodos contables
+      fetch("/api/contabilidad/periodos")
+        .then(res => res.ok ? res.json() : [])
+        .then(data => {
+          setPeriodos(Array.isArray(data) ? data : []);
+          // Seleccionar por defecto el periodo activo más reciente
+          const activos = (Array.isArray(data) ? data : []).filter((p: any) => p.estado === 'abierto' || p.estado === 'activo');
+          if (activos.length > 0) {
+            // Ordenar por año y mes descendente
+            activos.sort((a: any, b: any) => (b.anio || b.ano) - (a.anio || a.ano) || b.mes - a.mes);
+            setFilterPeriodo(activos[0].id);
+          }
+        });
+    }
+  }, [activeTab]);
+
+  // Cuando cambia la fecha, seleccionar el periodo correspondiente
+  useEffect(() => {
+    if (filterFecha && periodos.length > 0) {
+      const fecha = new Date(filterFecha);
+      const periodoEncontrado = periodos.find((p: any) => {
+        const inicio = new Date(p.fechaInicio || p.fecha_inicio);
+        const cierre = new Date(p.fechaCierre || p.fecha_cierre);
+        return fecha >= inicio && fecha <= cierre;
+      });
+      if (periodoEncontrado) {
+        setFilterPeriodo(periodoEncontrado.id);
+      }
+    }
+  }, [filterFecha, periodos]);
+
   useEffect(() => {
     if (activeTab === "puc") {
       setLoadingPuc(true);
@@ -129,6 +175,7 @@ const Contabilidad: React.FC = () => {
         ...(filterDescripcion ? { descripcion: filterDescripcion } : {}),
         ...(movFilterTipoDocumento ? { tipoDocumento: movFilterTipoDocumento } : {}),
         ...(movFilterEstado ? { estado: movFilterEstado } : {}),
+        ...(filterPeriodo ? { periodo_id: filterPeriodo } : {}),
       });
       fetch(`/api/contabilidad/transacciones?${params}`)
         .then((res) => {
@@ -143,7 +190,7 @@ const Contabilidad: React.FC = () => {
         .catch((err) => setErrorMov(err.message))
         .finally(() => setLoadingMov(false));
     }
-  }, [activeTab, movPage, movPageSize, filterFecha, filterDescripcion, movFilterTipoDocumento, movFilterEstado]);
+  }, [activeTab, movPage, movPageSize, filterFecha, filterDescripcion, movFilterTipoDocumento, movFilterEstado, filterPeriodo]);
 
   return (
     <div className="flex">
@@ -166,19 +213,37 @@ const Contabilidad: React.FC = () => {
             <h2 className="text-xl font-bold mb-2">Movimientos</h2>
             <button className="bg-green-600 text-white px-4 py-2 rounded mb-4 hover:bg-green-700 transition" onClick={handleCreateTrans}>Crear Transacción</button>
             <div className="mb-4 flex gap-2 items-center">
-              <input value={filterFecha} onChange={e => { setFilterFecha(e.target.value); setMovPage(1); }} placeholder="Filtrar por fecha (YYYY-MM-DD)" className="border p-2 rounded" />
+              {/* Selector de fecha con calendario */}
+              <input
+                type="date"
+                value={filterFecha}
+                onChange={e => { setFilterFecha(e.target.value); setMovPage(1); }}
+                className="border p-2 rounded min-w-[160px]"
+                placeholder="Selecciona fecha"
+                max={fechasDisponibles.length > 0 ? fechasDisponibles[fechasDisponibles.length - 1] : undefined}
+                min={fechasDisponibles.length > 0 ? fechasDisponibles[0] : undefined}
+              />
+              {/* Filtro por descripción */}
               <input value={filterDescripcion} onChange={e => { setFilterDescripcion(e.target.value); setMovPage(1); }} placeholder="Filtrar por descripción" className="border p-2 rounded" />
-              <select value={movFilterTipoDocumento} onChange={e => { setMovFilterTipoDocumento(e.target.value); setMovPage(1); }} className="border p-2 rounded">
-                <option value="">Tipo de documento</option>
-                <option value="Factura">Factura</option>
-                <option value="Recibo">Recibo</option>
-                <option value="Nota">Nota</option>
-                <option value="Otro">Otro</option>
+              {/* Filtro por periodo contable */}
+              <select value={filterPeriodo} onChange={e => { setFilterPeriodo(e.target.value); setMovPage(1); }} className="border p-2 rounded min-w-[160px]">
+                <option value="">Todos los periodos</option>
+                {periodos.map((p: any) => (
+                  <option key={p.id} value={p.id}>{p.anio}-{p.mes}</option>
+                ))}
               </select>
-              <select value={movFilterEstado} onChange={e => { setMovFilterEstado(e.target.value); setMovPage(1); }} className="border p-2 rounded">
+              {/* Filtro por tipo de documento dinámico */}
+              <select value={movFilterTipoDocumento} onChange={e => { setMovFilterTipoDocumento(e.target.value); setMovPage(1); }} className="border p-2 rounded min-w-[160px]">
+                <option value="">Tipo de documento</option>
+                {tiposDocumento.map((t: any) => (
+                  <option key={t.id} value={t.nombre}>{t.nombre}</option>
+                ))}
+              </select>
+              {/* Filtro por estado fijo */}
+              <select value={movFilterEstado} onChange={e => { setMovFilterEstado(e.target.value); setMovPage(1); }} className="border p-2 rounded min-w-[160px]">
                 <option value="">Estado</option>
-                <option value="registrada">Registrada</option>
-                <option value="anulada">Anulada</option>
+                <option value="anulado">Anulado</option>
+                <option value="borrador">Borrador</option>
                 <option value="contabilizado">Contabilizado</option>
               </select>
               <button className="bg-primary text-primary-foreground px-4 py-2 rounded" onClick={() => { setMovPage(1); }}>Buscar</button>
@@ -187,6 +252,17 @@ const Contabilidad: React.FC = () => {
               <div className="text-gray-500">Cargando movimientos...</div>
             ) : errorMov ? (
               <div className="text-red-500">{errorMov}</div>
+            ) : movimientos.length === 0 ? (
+              <div className="text-center text-gray-600 bg-yellow-50 border border-yellow-200 rounded p-4 my-4">
+                No se encontraron transacciones para los filtros seleccionados.
+                <br />
+                {filterPeriodo && (
+                  <span>Para el periodo seleccionado no existen transacciones en la base de datos.</span>
+                )}
+                {!filterPeriodo && filterFecha && (
+                  <span>No existen transacciones para la fecha seleccionada.</span>
+                )}
+              </div>
             ) : (
               <div className="overflow-auto max-h-[400px]">
                 <table className="min-w-full border text-sm">
@@ -210,11 +286,11 @@ const Contabilidad: React.FC = () => {
                       return (
                         <tr key={mov.id}>
                           <td className="border px-2 py-1">{mov.tipoTransaccion || "-"}</td>
-                          <td className="border px-2 py-1">{mov.fecha}</td>
+                          <td className="border px-2 py-1">{mov.fecha ? mov.fecha.slice(0, 10) : '-'}</td>
                           <td className="border px-2 py-1">{mov.numeroComprobante}</td>
                           <td className="border px-2 py-1">{totalDebito.toLocaleString()}</td>
                           <td className="border px-2 py-1">{totalCredito.toLocaleString()}</td>
-                          <td className="border px-2 py-1">{mov.movimientos?.[0]?.terceroId || "-"}</td>
+                          <td className="border px-2 py-1">{mov.movimientos?.[0]?.terceroRazonSocial || "-"}</td>
                           <td className="border px-2 py-1">{mov.concepto}</td>
                           <td className="border px-2 py-1">{mov.estado || "-"}</td>
                           <td className="border px-2 py-1">
@@ -394,6 +470,7 @@ const Contabilidad: React.FC = () => {
                 fecha: new Date().toISOString().slice(0, 10),
                 usuario_id: 3, // Cambia por el usuario real si lo tienes
                 tipo: "manual", // Puedes adaptar según tu lógica
+                estado: data.estado || 'borrador',
                 tercero_id: data.tercero?.id || null,
                 cuentas: data.movimientos.map(m => ({
                   cuenta_id: m.cuenta,

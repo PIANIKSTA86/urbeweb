@@ -44,7 +44,7 @@ export const tipoContribuyenteEnum = mysqlEnum('tipo_contribuyente', ['responsab
 export const tipoIdentificacionEnum = mysqlEnum('tipo_identificacion', ['cedula', 'nit', 'pasaporte', 'cedula_extranjeria']);
 export const tipoUnidadEnum = mysqlEnum('tipo_unidad', ['apartamento', 'local_comercial', 'oficina', 'deposito', 'parqueadero']);
 export const estadoOcupacionEnum = mysqlEnum('estado_ocupacion', ['ocupado', 'desocupado', 'en_mantenimiento']);
-export const estadoPeriodoEnum = mysqlEnum('estado_periodo', ['abierto', 'cerrado']);
+export const estadoPeriodoEnum = mysqlEnum('estado_periodo', ['abierto', 'cerrado', 'bloqueado']);
 export const tipoTransaccionEnum = mysqlEnum('tipo_transaccion', ['ingreso', 'egreso', 'ajuste']);
 export const rolUsuarioEnum = mysqlEnum('rol_usuario', ['superadmin', 'administrador', 'contador', 'revisor', 'auxiliar', 'propietario']);
 
@@ -120,13 +120,16 @@ export const planCuentas = mysqlTable("plan_cuentas", {
 
 export const periodosContables = mysqlTable("periodos_contables", {
   id: varchar("id", { length: 36 }).primaryKey().notNull(),
+  nombre: varchar("nombre", { length: 100 }).notNull(),
   ano: int("ano").notNull(),
   mes: int("mes").notNull(),
-  nombre: varchar("nombre", { length: 50 }).notNull(),
-  fechaInicio: datetime("fecha_inicio").notNull(),
-  fechaCierre: datetime("fecha_cierre").notNull(),
-  estado: estadoPeriodoEnum.notNull().default('abierto'),
-  fechaCreacion: datetime("fecha_creacion").default(sql`CURRENT_TIMESTAMP`),
+  fecha_inicio: datetime("fecha_inicio").notNull(),
+  fecha_fin: datetime("fecha_fin").notNull(),
+  estado_periodo: estadoPeriodoEnum.notNull().default('abierto'),
+  fecha_creacion: timestamp("fecha_creacion").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  fecha_cierre: timestamp("fecha_cierre"),
+  usuario_creacion_id: int("usuario_creacion_id").notNull(),
+  updated_at: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`).notNull(),
 });
 
 export const comprobantesContables = mysqlTable("comprobantes_contables", {
@@ -134,6 +137,7 @@ export const comprobantesContables = mysqlTable("comprobantes_contables", {
   numero: varchar("numero", { length: 50 }).notNull(),
   tipo: mysqlEnum("tipo", ['venta', 'compra', 'ingreso', 'egreso', 'nota']).notNull(),
   fecha: datetime("fecha").notNull(),
+  periodo_id: varchar("periodo_id", { length: 36 }), // FK a periodos_contables
   descripcion: text("descripcion"),
   estado: mysqlEnum("estado", ['activo', 'anulado', 'registrado']).notNull().default('registrado'),
   usuario_id: int("usuario_id").notNull(),

@@ -1,14 +1,28 @@
+// Endpoint para obtener fechas únicas de movimientos contables
+export async function getFechasMovimientos(req, res) {
+  try {
+    // Obtener fechas únicas de la tabla comprobantesContables (o movimientosContables si aplica)
+    const fechas = await db
+      .select({ fecha: comprobantesContables.fecha })
+      .from(comprobantesContables)
+      .groupBy(comprobantesContables.fecha)
+      .orderBy(comprobantesContables.fecha);
+    res.json(fechas.map(f => f.fecha));
+  } catch (err) {
+    res.status(500).json({ error: 'Error al obtener fechas de movimientos', detalles: err.message });
+  }
+}
 // Controlador para transacciones contables
 // Gestiona las operaciones CRUD sobre las transacciones
 
 import { db } from './db.ts';
-import { comprobantesContables, movimientosContables, planCuentas, comprobanteDetalle } from '../shared/schema.ts';
+import { comprobantesContables, movimientosContables, planCuentas, comprobanteDetalle, terceros, periodosContables } from '../shared/schema.ts';
 import { eq, and, like } from 'drizzle-orm';
 
 // Obtener todas las transacciones
 export async function getTransacciones(req, res) {
   try {
-    const { page = 1, pageSize = 20, fecha, descripcion, estado } = req.query;
+  const { page = 1, pageSize = 20, fecha, descripcion, estado, periodo_id } = req.query;
     let whereClause = [];
     // Filter by fecha
     if (fecha) {
@@ -16,11 +30,15 @@ export async function getTransacciones(req, res) {
     }
     // Filter by descripcion
     if (descripcion) {
-      whereClause.push(like(comprobantesContables.concepto, `%${descripcion}%`));
+      whereClause.push(like(comprobantesContables.descripcion, `%${descripcion}%`));
     }
     // Filter by estado
     if (estado) {
       whereClause.push(eq(comprobantesContables.estado, estado));
+    }
+    // Filtrar por periodo_id directamente (UUID)
+    if (periodo_id) {
+      whereClause.push(eq(comprobantesContables.periodo_id, periodo_id));
     }
     const offset = (parseInt(page) - 1) * parseInt(pageSize);
     const comprobantes = await db.select().from(comprobantesContables)
@@ -28,9 +46,34 @@ export async function getTransacciones(req, res) {
       .limit(parseInt(pageSize)).offset(offset);
     // Para cada comprobante, obtener sus movimientos relacionados
     const comprobantesConMovimientos = await Promise.all(comprobantes.map(async (comprobante) => {
+      // Obtener movimientos y, si hay tercero_id, buscar la razón social
       const movimientos = await db.select().from(comprobanteDetalle)
         .where(eq(comprobanteDetalle.comprobante_id, comprobante.id));
-      return { ...comprobante, movimientos };
+      const movimientosConTercero = await Promise.all(movimientos.map(async mov => {
+        let terceroRazonSocial = null;
+        if (mov.tercero_id) {
+          const tercero = await db.select().from(terceros).where(eq(terceros.id, mov.tercero_id));
+          if (tercero && tercero[0]) {
+            terceroRazonSocial = tercero[0].razonSocial || tercero[0].primerNombre + ' ' + (tercero[0].primerApellido || '');
+          }
+        }
+        return {
+          ...mov,
+          valorDebito: mov.debito,
+          valorCredito: mov.credito,
+          terceroId: mov.tercero_id,
+          terceroRazonSocial
+        };
+      }));
+      return {
+        id: comprobante.id,
+        tipoTransaccion: comprobante.tipo,
+        numeroComprobante: comprobante.numero,
+        fecha: comprobante.fecha,
+        estado: comprobante.estado,
+        concepto: comprobante.descripcion,
+        movimientos: movimientosConTercero
+      };
     }));
     // Obtener el total de comprobantes según filtros
     const totalComprobantes = await db.select().from(comprobantesContables)
@@ -72,14 +115,29 @@ export async function createTransaccion(req, res) {
     if (totalDebito !== totalCredito) {
       return res.status(400).json({ error: 'La suma de débitos y créditos debe ser igual.' });
     }
-    // Crear comprobante contable
-    // Crear comprobante contable con los campos correctos
+    // Buscar el periodo correspondiente a la fecha
+    let periodoId = null;
+    if (nuevaTransaccion.fecha) {
+      const periodo = await db.select().from(periodosContables)
+        .where(and(
+          periodosContables.fechaInicio.lte(nuevaTransaccion.fecha),
+          periodosContables.fechaCierre.gte(nuevaTransaccion.fecha),
+          periodosContables.estado_periodo.eq('abierto')
+        ));
+      if (periodo && periodo[0]) {
+        periodoId = periodo[0].id;
+      } else {
+        return res.status(400).json({ error: 'No existe un periodo contable abierto para la fecha seleccionada.' });
+      }
+    }
+    // Crear comprobante contable con periodo_id
     const comprobante = {
       numero: nuevaTransaccion.documento, // número del comprobante
       tipo: nuevaTransaccion.tipo, // tipo de comprobante
       fecha: nuevaTransaccion.fecha,
+      periodo_id: periodoId,
       descripcion: nuevaTransaccion.descripcion,
-      estado: 'registrado',
+      estado: nuevaTransaccion.estado || 'borrador', // por defecto 'borrador'
       usuario_id: nuevaTransaccion.usuario_id, // id del usuario que crea
     };
     // Insertar comprobante y obtener el id generado
@@ -106,6 +164,22 @@ export async function updateTransaccion(req, res) {
   try {
     const id = req.params.id;
     const updateData = req.body;
+    // Si se actualiza la fecha, buscar el periodo correspondiente
+    let periodoId = null;
+    if (updateData.fecha) {
+      const periodo = await db.select().from(periodosContables)
+        .where(and(
+          periodosContables.fechaInicio.lte(updateData.fecha),
+          periodosContables.fechaCierre.gte(updateData.fecha),
+          periodosContables.estado_periodo.eq('abierto')
+        ));
+      if (periodo && periodo[0]) {
+        periodoId = periodo[0].id;
+        updateData.periodo_id = periodoId;
+      } else {
+        return res.status(400).json({ error: 'No existe un periodo contable abierto para la fecha seleccionada.' });
+      }
+    }
     const result = await db.update(comprobantesContables)
       .set(updateData)
       .where(eq(comprobantesContables.id, id));

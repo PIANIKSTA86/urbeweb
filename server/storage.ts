@@ -346,7 +346,7 @@ export class DatabaseStorage implements IStorage {
     const [periodo] = await db
       .select()
       .from(periodosContables)
-      .where(eq(periodosContables.estado, 'abierto'))
+      .where(eq(periodosContables.estado_periodo, 'abierto'))
       .orderBy(desc(periodosContables.ano), desc(periodosContables.mes))
       .limit(1);
     return periodo;
