@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { SidebarNew } from "@/components/layout/sidebar-new";
 import { TopNavigation } from "@/components/layout/top-navigation";
@@ -26,18 +27,20 @@ export default function Terceros() {
   const [unidadFormMode, setUnidadFormMode] = useState<'create' | 'edit'>('create');
 
   return (
-    <div className="flex">
+    <div className="flex h-screen">
       <SidebarNew />
-      <main className="flex-1 p-8">
-        <h1 className="text-2xl font-bold mb-4">Gestión de Terceros</h1>
-        <p className="text-muted-foreground mb-6">Administra propietarios, inquilinos, proveedores y unidades habitacionales</p>
-        <div className="mb-6 flex gap-4 border-b pb-2">
-          <button
-            className={`px-4 py-2 rounded-t font-semibold flex items-center gap-2 ${activeTab === "terceros" ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
-            onClick={() => setActiveTab("terceros")}
-          >
-            <Users className="w-4 h-4" /> Terceros
-          </button>
+      <div className="flex-1 flex flex-col">
+        <TopNavigation title="Terceros" />
+        <main className="flex-1 p-8 overflow-auto">
+         {/*} <h1 className="text-2xl font-bold mb-4">Gestión de Terceros</h1>
+          <p className="text-muted-foreground mb-6">Administra propietarios, inquilinos, proveedores y unidades habitacionales</p> */}
+          <div className="mb-6 flex gap-4 border-b pb-2">
+            <button
+              className={`px-4 py-2 rounded-t font-semibold flex items-center gap-2 ${activeTab === "terceros" ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
+              onClick={() => setActiveTab("terceros")}
+            >
+              <Users className="w-4 h-4" /> Terceros
+            </button>
           <button
             className={`px-4 py-2 rounded-t font-semibold flex items-center gap-2 ${activeTab === "unidades" ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
             onClick={() => setActiveTab("unidades")}
@@ -159,7 +162,8 @@ export default function Terceros() {
           unidad={selectedUnidad}
           mode={unidadFormMode}
         />
-      </main>
+        </main>
+      </div>
     </div>
   );
 }

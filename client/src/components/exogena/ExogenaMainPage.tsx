@@ -17,7 +17,7 @@ const ExogenaMainPage: React.FC = () => {
 
   return (
     <div className="container mx-auto py-6">
-      <h1 className="text-3xl font-bold mb-4">Información Exógena DIAN</h1>
+     {/*} <h1 className="text-3xl font-bold mb-4">Información Exógena DIAN</h1>*/}
       <Tabs defaultValue="reportes" className="w-full">
         <TabsList className="mb-6 flex gap-4 border-b pb-2 bg-transparent p-0 justify-start">
           <TabsTrigger value="reportes" className="px-4 py-2 rounded-t font-semibold flex items-center gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=inactive]:bg-muted data-[state=inactive]:text-muted-foreground">

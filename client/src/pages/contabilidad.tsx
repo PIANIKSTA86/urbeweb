@@ -10,7 +10,9 @@ import PrefijosConfig from "@/components/contabilidad/PrefijosConfig";
 import PeriodosPage from "./periodos";
 import Modal from "@/components/ui/modal";
 import { ModalCrearCuentaPUC } from "@/components/contabilidad/ModalCrearCuentaPUC";
+
 import { SidebarNew } from "@/components/layout/sidebar-new";
+import { TopNavigation } from "@/components/layout/top-navigation";
 
 interface PlanCuenta {
   id: number;
@@ -192,10 +194,12 @@ const Contabilidad: React.FC = () => {
     }
   }, [activeTab, movPage, movPageSize, filterFecha, filterDescripcion, movFilterTipoDocumento, movFilterEstado, filterPeriodo]);
 
-  return (
-    <div className="flex">
-      <SidebarNew />
-      <main className="flex-1 p-8">
+    return (
+      <div className="flex h-screen">
+        <SidebarNew />
+        <div className="flex-1 flex flex-col">
+          <TopNavigation title="Contabilidad" />
+          <main className="flex-1 p-8 overflow-auto">
         <h1 className="text-2xl font-bold mb-4">Contabilidad</h1>
         <div className="mb-6 flex gap-4 border-b pb-2">
           {tabs.map(tab => (
@@ -494,7 +498,8 @@ const Contabilidad: React.FC = () => {
             onTerceroChange={setTerceroSeleccionado}
           />
         )}
-      </main>
+        </main>
+      </div>
     </div>
   );
 }
