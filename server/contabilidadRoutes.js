@@ -1,4 +1,6 @@
 
+// ...existing code...
+
 import express from 'express';
 import * as contabilidadController from './contabilidadController.js';
 import * as transaccionesController from './transaccionesController.js';
@@ -7,7 +9,16 @@ import periodosRoutes from './periodosRoutes.js';
 
 const router = express.Router();
 
-// Endpoint para fechas únicas de movimientos contables
+// Endpoint para validar si existe un número de comprobante
+router.get('/comprobantes/numero/:numero', async (req, res) => {
+       try {
+	       const { numero } = req.params;
+	       const comprobante = await db.select().from(comprobantesContables).where(eq(comprobantesContables.numero, numero));
+	       res.json({ exists: comprobante.length > 0 });
+       } catch (err) {
+	       res.status(500).json({ error: 'Error al validar número de comprobante', detalles: err.message });
+       }
+});
 
 // Endpoint para fechas únicas de movimientos contables
 router.get('/transacciones/fechas', transaccionesController.getFechasMovimientos);

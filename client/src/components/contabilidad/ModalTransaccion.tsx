@@ -49,6 +49,9 @@ interface ModalTransaccionProps {
     descripcion: string;
     movimientos: Movimiento[];
     tercero?: Tercero | null;
+    estado?: string;
+    periodo_id?: string;
+    tercero_id?: string;
   }) => void;
   tercero?: Tercero | null;
   onTerceroChange?: (tercero: Tercero | null) => void;
@@ -80,8 +83,23 @@ function ModalTransaccion({ open, onClose, onSave, tercero, onTerceroChange }: M
       setError('Debes seleccionar una fecha.');
       return;
     }
+    if (!terceroLocal) {
+      setError('Debes seleccionar un tercero para la transacción.');
+      return;
+    }
     setLoading(true);
     try {
+      // Validar número de documento único vía backend
+      const numeroDoc = `${prefijo}-${numeracion}`;
+      const checkRes = await fetch(`/api/contabilidad/comprobantes/numero/${encodeURIComponent(numeroDoc)}`);
+      if (checkRes.ok) {
+        const checkData = await checkRes.json();
+        if (checkData && checkData.exists) {
+          setError('Ya existe un documento con ese número.');
+          setLoading(false);
+          return;
+        }
+      }
       // Construir movimientos para el backend
       const movimientosBackend = movimientos.map(m => ({
         cuenta_id: m.cuenta?.id,
@@ -90,13 +108,21 @@ function ModalTransaccion({ open, onClose, onSave, tercero, onTerceroChange }: M
         debito: Number(m.debito) || 0,
         credito: Number(m.credito) || 0
       }));
+      // Obtener periodo_id del contexto o prop (ajustar según integración real)
+      let periodo_id = undefined;
+      if (typeof window !== 'undefined') {
+        const urlParams = new URLSearchParams(window.location.search);
+        periodo_id = urlParams.get('periodo_id') || undefined;
+      }
       const body = {
-        numero: `${prefijo}-${numeracion}`,
+        numero: numeroDoc,
         tipo: tiposTransaccion.find(t => String(t.id) === tipoTransaccion)?.nombre || '',
         fecha: typeof fecha === 'string' ? fecha : (fecha instanceof Date ? fecha.toISOString().substring(0, 10) : ''),
         descripcion,
         usuario_id: user?.id || 3,
-        movimientos: movimientosBackend
+        movimientos: movimientosBackend,
+        periodo_id,
+        tercero_id: terceroLocal?.id
       };
       const res = await fetch('/api/contabilidad/comprobantes', {
         method: 'POST',
@@ -108,6 +134,13 @@ function ModalTransaccion({ open, onClose, onSave, tercero, onTerceroChange }: M
         setError(data.error || 'Error al guardar la transacción');
       } else {
         setSuccess('Transacción guardada correctamente');
+        // Actualizar consecutivo localmente tras guardar
+        if (autoNumeracion && prefijosFiltrados.length > 0) {
+          const pref = prefijosFiltrados.find((p) => p.prefijo === prefijo);
+          if (pref) {
+            setNumeracion(String(Number(numeracion) + 1));
+          }
+        }
         setTimeout(() => {
           setSuccess(null);
           onClose();
@@ -161,15 +194,39 @@ function ModalTransaccion({ open, onClose, onSave, tercero, onTerceroChange }: M
   // Filtrar prefijos según el tipo de transacción seleccionado
   const prefijosFiltrados = prefijos.filter((p) => String(p.tipo_transaccion_id) === tipoTransaccion);
 
+  // Sincroniza prefijo y numeración al cambiar tipo de transacción o lista de prefijos
   useEffect(() => {
     if (prefijosFiltrados.length > 0) {
       setPrefijo(prefijosFiltrados[0].prefijo);
-      setNumeracion(String(prefijosFiltrados[0].numeracion_actual));
+      if (autoNumeracion) {
+        setNumeracion(String(prefijosFiltrados[0].numeracion_actual));
+      }
     } else {
       setPrefijo("");
       setNumeracion("");
     }
   }, [tipoTransaccion, prefijos]);
+
+  // Sincroniza numeración al cambiar prefijo si está en modo automático
+  useEffect(() => {
+    if (autoNumeracion && prefijo) {
+      const pref = prefijosFiltrados.find((p) => p.prefijo === prefijo);
+      if (pref) {
+        setNumeracion(String(pref.numeracion_actual));
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefijo]);
+
+  // Si el usuario activa/desactiva el modo automático, sincroniza numeración
+  useEffect(() => {
+    if (autoNumeracion && prefijo) {
+      const pref = prefijosFiltrados.find((p) => p.prefijo === prefijo);
+      if (pref) {
+        setNumeracion(String(pref.numeracion_actual));
+      }
+    }
+  }, [autoNumeracion]);
 
   const validarNumeracion = (valor: string) => {
     const duplicados = ["CI-120", "CI-122"];
@@ -199,9 +256,30 @@ function ModalTransaccion({ open, onClose, onSave, tercero, onTerceroChange }: M
   const totalCredito = movimientos.reduce((acc, m) => acc + Number(m.credito), 0);
   const balanceado = totalDebito === totalCredito;
 
-  const handleSave = () => {
+  // Se asume que el periodo_id se recibe como prop o desde el contexto de la página principal
+  const handleSave = async () => {
     if (!balanceado || numeracionError) return;
-    onSave({ tipoTransaccion: Number(tipoTransaccion), prefijo, numeracion, descripcion, movimientos, tercero: terceroLocal, estado });
+    if (!terceroLocal) {
+      setError('Debes seleccionar un tercero para la transacción.');
+      return;
+    }
+    const numeroDoc = `${prefijo}-${numeracion}`;
+    const res = await fetch(`/api/contabilidad/comprobantes/numero/${encodeURIComponent(numeroDoc)}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.exists) {
+        setError('Ya existe un documento con ese número.');
+        return;
+      }
+    }
+    // Obtener periodo_id del contexto o prop (ajustar según integración real)
+    let periodo_id = undefined;
+    if (typeof window !== 'undefined') {
+      // Buscar en la URL o en el contexto global de la app
+      const urlParams = new URLSearchParams(window.location.search);
+      periodo_id = urlParams.get('periodo_id') || undefined;
+    }
+    onSave({ tipoTransaccion: Number(tipoTransaccion), prefijo, numeracion, descripcion, movimientos, tercero: terceroLocal, estado, periodo_id });
   };
 
   return (

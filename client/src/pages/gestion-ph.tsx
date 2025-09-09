@@ -1,10 +1,12 @@
+
 import { SidebarNew } from "@/components/layout/sidebar-new";
 import { useState } from "react";
+import { Calendar, Users, FileText } from "lucide-react";
 
 const tabs = [
-  { label: "Calendario", key: "calendario" },
-  { label: "Reserva de Zonas Comunes", key: "zonas" },
-  { label: "CRUD Gestión Documental", key: "documental" },
+  { label: "Calendario", key: "calendario", icon: Calendar },
+  { label: "Reserva de Zonas Comunes", key: "zonas", icon: Users },
+  { label: "Gestión Documental", key: "documental", icon: FileText },
 ];
 
 export default function GestionPHPage() {
@@ -14,16 +16,19 @@ export default function GestionPHPage() {
       <SidebarNew />
       <main className="flex-1 p-8">
         <h1 className="text-2xl font-bold mb-4">Gestión PH</h1>
-        <div className="mb-6 flex gap-4 border-b pb-2">
-          {tabs.map(tab => (
-            <button
-              key={tab.key}
-              className={`px-4 py-2 rounded-t font-semibold ${activeTab === tab.key ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
-              onClick={() => setActiveTab(tab.key)}
-            >
-              {tab.label}
-            </button>
-          ))}
+        <div className="mb-6 flex gap-4 border-b pb-2 justify-start">
+          {tabs.map(tab => {
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.key}
+                className={`px-4 py-2 rounded-t font-semibold flex items-center gap-2 ${activeTab === tab.key ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
+                onClick={() => setActiveTab(tab.key)}
+              >
+                <Icon className="w-4 h-4" /> {tab.label}
+              </button>
+            );
+          })}
         </div>
         {activeTab === "calendario" && (
           <section>

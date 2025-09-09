@@ -1,11 +1,13 @@
+
 import { SidebarNew } from "@/components/layout/sidebar-new";
 import { useState } from "react";
+import { DollarSign, CreditCard, ShoppingCart, ListChecks } from "lucide-react";
 
 const tabs = [
-	{ label: "Gestión de Recaudos", key: "recaudos" },
-	{ label: "Gestión de Pagos", key: "pagos" },
-	{ label: "Gestión de Compras", key: "compras" },
-	{ label: "Conciliaciones", key: "conciliaciones" },
+	{ label: "Recaudos", key: "recaudos", icon: DollarSign },
+	{ label: "Pagos", key: "pagos", icon: CreditCard },
+	{ label: "Compras", key: "compras", icon: ShoppingCart },
+	{ label: "Conciliaciones", key: "conciliaciones", icon: ListChecks },
 ];
 
 export default function TesoreriaPage() {
@@ -15,20 +17,19 @@ export default function TesoreriaPage() {
 			<SidebarNew />
 			<main className="flex-1 p-8">
 				<h1 className="text-2xl font-bold mb-4">Tesorería</h1>
-				<div className="mb-6 flex gap-4 border-b pb-2">
-					{tabs.map((tab) => (
-						<button
-							key={tab.key}
-							className={`px-4 py-2 rounded-t font-semibold ${
-								activeTab === tab.key
-									? "bg-primary text-primary-foreground"
-									: "bg-muted text-muted-foreground"
-							}`}
-							onClick={() => setActiveTab(tab.key)}
-						>
-							{tab.label}
-						</button>
-					))}
+				<div className="mb-6 flex gap-4 border-b pb-2 justify-start">
+				  {tabs.map((tab) => {
+				    const Icon = tab.icon;
+				    return (
+				      <button
+				        key={tab.key}
+				        className={`px-4 py-2 rounded-t font-semibold flex items-center gap-2 ${activeTab === tab.key ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
+				        onClick={() => setActiveTab(tab.key)}
+				      >
+				        <Icon className="w-4 h-4" /> {tab.label}
+				      </button>
+				    );
+				  })}
 				</div>
 				{activeTab === "recaudos" && (
 					<section>
