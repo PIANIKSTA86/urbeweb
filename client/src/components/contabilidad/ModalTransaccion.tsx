@@ -170,7 +170,7 @@ function ModalTransaccion({ open, onClose, onSave, tercero, onTerceroChange }: M
   ]);
   const [fecha, setFecha] = useState<Date | undefined>(undefined);
   // Estado de la transacción (borrador o contabilizado)
-  const [estado, setEstado] = useState<'borrador' | 'contabilizado'>('borrador');
+  const [estado, setEstado] = useState<'borrador' | 'contabilizado'>('contabilizado');
 
   // Estados para edición amigable de inputs de débito y crédito
   const [editingCell, setEditingCell] = useState<{row: number, field: 'debito'|'credito'|null} | null>(null);
@@ -291,13 +291,7 @@ function ModalTransaccion({ open, onClose, onSave, tercero, onTerceroChange }: M
         <div style={{ overflowX: 'auto', width: '100%' }}>
           {/* Primera sección: datos principales */}
           <div className="flex gap-4 mb-4 items-end flex-wrap">
-            <div className="flex flex-col">
-              <label>Estado</label>
-              <select value={estado} onChange={e => setEstado(e.target.value as 'borrador' | 'contabilizado')} className="border p-2 rounded w-[160px]">
-                <option value="borrador">Borrador</option>
-                <option value="contabilizado">Contabilizado</option>
-              </select>
-            </div>
+            {/* Selector de estado movido a la parte inferior */}
             <div className="flex flex-col">
               <label>Tipo de transacción</label>
               <Select value={tipoTransaccion} onValueChange={setTipoTransaccion}>
@@ -520,16 +514,25 @@ function ModalTransaccion({ open, onClose, onSave, tercero, onTerceroChange }: M
           </div>
           {/* Cuarta sección: acciones finales */}
           <div className="flex flex-wrap gap-2 justify-end items-end mt-6">
-            <Button variant="outline" className="mb-2 p-3 bg-orange-100 hover:bg-orange-200 border-orange-300" title="Imprimir">
-              <Printer className="w-14 h-14 text-orange-500" />
-            </Button>
-            <Button variant="outline" className="mb-2 p-3 bg-green-100 hover:bg-green-200 border-green-300" title="Exportar PDF">
-              <FileText className="w-10 h-10 text-green-600" />
-            </Button>
-            <Button variant="outline" className="mb-2 p-3 bg-blue-100 hover:bg-blue-200 border-blue-300" title="Auditoría">
-              <Shield className="w-10 h-10 text-blue-600" />
-            </Button>
-            <Button className="bg-orange-500 text-white px-4 py-2 rounded mb-2 hover:bg-orange-600 transition" disabled>Guardar borrador</Button>
+            <div className="flex gap-2 flex-1 justify-start items-end">
+              <Button variant="outline" className="mb-2 p-3 bg-orange-100 hover:bg-orange-200 border-orange-300" title="Imprimir">
+                <Printer className="w-14 h-14 text-orange-500" />
+              </Button>
+              <Button variant="outline" className="mb-2 p-3 bg-green-100 hover:bg-green-200 border-green-300" title="Exportar PDF">
+                <FileText className="w-10 h-10 text-green-600" />
+              </Button>
+              <Button variant="outline" className="mb-2 p-3 bg-blue-100 hover:bg-blue-200 border-blue-300" title="Auditoría">
+                <Shield className="w-10 h-10 text-blue-600" />
+              </Button>
+            </div>
+            {/* Selector de estado movido aquí */}
+            <div className="flex flex-col justify-end mr-4">
+              <label className="mb-1">Estado</label>
+              <select value={estado} onChange={e => setEstado(e.target.value as 'contabilizado' | 'borrador')} className="border p-2 rounded w-[160px] align-middle">
+                <option value="contabilizado">Contabilizado</option>
+                <option value="borrador">Borrador</option>
+              </select>
+            </div>
             <Button
               className="bg-green-600 text-white px-4 py-2 rounded mb-2 hover:bg-green-700 transition"
               onClick={handleAprobarContabilizar}
