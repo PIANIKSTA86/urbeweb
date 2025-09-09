@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useContext } from "react";
+import { SidebarContext } from "./sidebarContext";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { LayoutDashboard, Users, Calculator, FileText, DollarSign, Briefcase, Building, Settings, LogOut } from "lucide-react";
@@ -14,12 +15,12 @@ const navigationItems = [
   { path: "/presupuestos", icon: Calculator, label: "Presupuestos", testId: "nav-presupuestos" },
   { path: "/exogena", icon: FileText, label: "Exógena", testId: "nav-exogena" },
   { path: "/gestion-ph", icon: Building, label: "Gestión PH", testId: "nav-gestion-ph" },
-  { path: "/configuracion", icon: Settings, label: "Configuración", testId: "nav-configuracion" },
+
 ];
 
 
 export function SidebarNew() {
-  const [collapsed, setCollapsed] = useState(false);
+  const { collapsed } = useContext(SidebarContext);
   const [location, setLocation] = useLocation();
   const { logout } = useAuth();
 
@@ -28,25 +29,14 @@ export function SidebarNew() {
   };
 
   return (
-  <div className={`bg-gradient-to-b from-blue-50 via-white to-purple-50 border-r border-sidebar-border shadow-lg transition-all duration-300 ${collapsed ? 'sidebar-collapsed' : 'sidebar-expanded'}`}> 
+    <div className={`bg-gradient-to-b from-blue-50 via-white to-purple-50 border-r border-sidebar-border shadow-lg transition-all duration-300 ${collapsed ? 'sidebar-collapsed' : 'sidebar-expanded'}`}> 
       <div className="p-4">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center">
-              <Building className="text-blue-600 text-3xl mr-3 drop-shadow-lg animate-pulse" />
-              {!collapsed && (
-                <span className="text-2xl font-extrabold text-blue-700 tracking-wide drop-shadow">URBE</span>
-              )}
-            </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setCollapsed(!collapsed)}
-            className="p-1"
-            data-testid="button-toggle-sidebar"
-          >
-            {collapsed ? <span>&#8250;</span> : <span>&#8249;</span>}
-          </Button>
+        <div className="flex items-center mb-8">
+          <Building className="text-blue-600 text-3xl mr-3 drop-shadow-lg animate-pulse" />
+          {!collapsed && (
+            <span className="text-2xl font-extrabold text-blue-700 tracking-wide drop-shadow">URBE</span>
+          )}
         </div>
         {/* Navigation */}
         <nav className="space-y-2">
@@ -68,22 +58,14 @@ export function SidebarNew() {
                 className={`w-full justify-start rounded-lg transition-all duration-200 ${isActive ? `bg-gradient-to-r ${pastel} text-blue-900 shadow-md` : 'text-sidebar-foreground hover:bg-blue-50'} hover:scale-105`}
                 onClick={() => handleNavigation(item.path)}
                 data-testid={item.testId}
+                title={collapsed ? item.label : undefined}
               >
                 <item.icon className="w-5 h-5 mr-3 flex-shrink-0 opacity-80" />
                 {!collapsed && <span>{item.label}</span>}
               </Button>
             );
           })}
-          {/* Botón de logout */}
-          <Button
-            variant="ghost"
-            className="w-full justify-start rounded-lg transition-all duration-200 text-sidebar-foreground hover:bg-red-100 hover:text-red-700 mt-8"
-            onClick={logout}
-            data-testid="nav-logout"
-          >
-            <LogOut className="w-5 h-5 mr-3 flex-shrink-0 opacity-80" />
-            {!collapsed && <span>Cerrar sesión</span>}
-          </Button>
+
         </nav>
       </div>
     </div>

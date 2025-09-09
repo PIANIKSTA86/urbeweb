@@ -200,7 +200,7 @@ const Contabilidad: React.FC = () => {
         <div className="flex-1 flex flex-col">
           <TopNavigation title="Contabilidad" />
           <main className="flex-1 p-8 overflow-auto">
-        <h1 className="text-2xl font-bold mb-4">Contabilidad</h1>
+        {/*<h1 className="text-2xl font-bold mb-4">Contabilidad</h1>*/}
         <div className="mb-6 flex gap-4 border-b pb-2">
           {tabs.map(tab => (
             <button

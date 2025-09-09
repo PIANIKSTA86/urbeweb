@@ -144,22 +144,22 @@ export function UnidadesTable({ searchTerm, propietarioId, onEdit }: UnidadesTab
         <table className="w-full" data-testid="table-unidades">
           <thead className="bg-muted/50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <th className="px-6 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Unidad
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <th className="px-6 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Propietario
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <th className="px-6 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Área
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <th className="px-6 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Cuota Admin.
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <th className="px-6 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Estado
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <th className="px-6 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Acciones
               </th>
             </tr>
@@ -167,14 +167,14 @@ export function UnidadesTable({ searchTerm, propietarioId, onEdit }: UnidadesTab
           <tbody className="bg-card divide-y divide-border">
             {unidades.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
+                <td colSpan={6} className="px-6 py-8 text-center text-muted-foreground">
                   No se encontraron unidades
                 </td>
               </tr>
             ) : (
               unidades.map((unidad: any) => (
                 <tr key={unidad.id} data-testid={`row-unidad-${unidad.id}`}>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-6 py-2 whitespace-nowrap">
                     <div>
                       <div className="text-foreground font-medium">
                         {unidad.codigoUnidad}
@@ -186,7 +186,7 @@ export function UnidadesTable({ searchTerm, propietarioId, onEdit }: UnidadesTab
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-foreground">
+                  <td className="px-6 py-2 whitespace-nowrap text-foreground">
                     {unidad.propietario ? (
                       <div>
                         <div className="font-medium">
@@ -200,13 +200,13 @@ export function UnidadesTable({ searchTerm, propietarioId, onEdit }: UnidadesTab
                       <span className="text-muted-foreground">Sin propietario</span>
                     )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-foreground">
+                  <td className="px-6 py-2 whitespace-nowrap text-foreground">
                     {unidad.area} m²
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-foreground">
+                  <td className="px-6 py-2 whitespace-nowrap text-foreground">
                     {formatCurrency(unidad.cuotaAdministracion)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-6 py-2 whitespace-nowrap">
                     <Badge className={getEstadoColor(unidad.estadoOcupacion)}>
                       {unidad.estadoOcupacion}
                     </Badge>

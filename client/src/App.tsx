@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/use-auth";
+import { SidebarProvider } from "@/components/layout/sidebarContext";
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/landing";
 import Dashboard from "@/pages/dashboard";
@@ -32,15 +33,15 @@ function Router() {
       ) : (
         <>
           <Route path="/" component={Dashboard} />
-  <Route path="/terceros" component={Terceros} />
-  <Route path="/contabilidad" component={Contabilidad} />
-  <Route path="/facturacion" component={Facturacion} />
-  <Route path="/tesoreria" component={Tesoreria} />
-  <Route path="/nomina" component={Nomina} />
-  <Route path="/presupuestos" component={Presupuestos} />
-  <Route path="/exogena" component={Exogena} />
-  <Route path="/gestion-ph" component={GestionPH} />
-  <Route path="/configuracion" component={Configuracion} />
+          <Route path="/terceros" component={Terceros} />
+          <Route path="/contabilidad" component={Contabilidad} />
+          <Route path="/facturacion" component={Facturacion} />
+          <Route path="/tesoreria" component={Tesoreria} />
+          <Route path="/nomina" component={Nomina} />
+          <Route path="/presupuestos" component={Presupuestos} />
+          <Route path="/exogena" component={Exogena} />
+          <Route path="/gestion-ph" component={GestionPH} />
+          <Route path="/configuracion" component={Configuracion} />
         </>
       )}
       <Route component={NotFound} />
@@ -51,10 +52,12 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Router />
-      </TooltipProvider>
+      <SidebarProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Router />
+        </TooltipProvider>
+      </SidebarProvider>
     </QueryClientProvider>
   );
 }

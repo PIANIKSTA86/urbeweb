@@ -129,22 +129,22 @@ export function TercerosTable({ searchTerm, tipoFiltro, onEdit }: TercerosTableP
         <table className="w-full" data-testid="table-terceros">
           <thead className="bg-muted/50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <th className="px-6 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Nombre
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <th className="px-6 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Documento
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <th className="px-6 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Tipo
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <th className="px-6 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Email
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <th className="px-6 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Teléfono
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <th className="px-6 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Acciones
               </th>
             </tr>
@@ -152,14 +152,14 @@ export function TercerosTable({ searchTerm, tipoFiltro, onEdit }: TercerosTableP
           <tbody className="bg-card divide-y divide-border">
             {terceros.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-6 py-12 text-center text-muted-foreground">
+                <td colSpan={6} className="px-6 py-8 text-center text-muted-foreground">
                   No se encontraron terceros
                 </td>
               </tr>
             ) : (
               terceros.map((tercero: any) => (
                 <tr key={tercero.id} data-testid={`row-tercero-${tercero.id}`}>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-6 py-2 whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center mr-3">
                         <span className="text-primary-foreground font-semibold text-sm">
@@ -176,24 +176,24 @@ export function TercerosTable({ searchTerm, tipoFiltro, onEdit }: TercerosTableP
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-foreground">
+                  <td className="px-6 py-2 whitespace-nowrap text-foreground">
                     <div>
                       <div className="font-medium">{tercero.numeroIdentificacion}</div>
                       <div className="text-sm text-muted-foreground">{tercero.tipoIdentificacion}</div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-6 py-2 whitespace-nowrap">
                     <Badge className={getTipoColor(tercero.tipoTercero)}>
                       {tercero.tipoTercero}
                     </Badge>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-foreground">
+                  <td className="px-6 py-2 whitespace-nowrap text-foreground">
                     {tercero.email || '-'}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-foreground">
+                  <td className="px-6 py-2 whitespace-nowrap text-foreground">
                     {tercero.telefono || '-'}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-6 py-2 whitespace-nowrap">
                     <div className="flex space-x-2">
                       <Button 
                         variant="ghost" 
