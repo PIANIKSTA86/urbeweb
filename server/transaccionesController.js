@@ -1,3 +1,35 @@
+// Obtener el siguiente consecutivo real para un prefijo
+export async function getSiguienteNumeracion(req, res) {
+  try {
+    const { prefijo } = req.query;
+    if (!prefijo) {
+      return res.status(400).json({ error: 'Prefijo requerido' });
+    }
+    // Buscar el mayor número usado para ese prefijo
+    // Se asume que el campo comprobantesContables.numero es tipo "PREFIJO-NUMERO"
+    const resultados = await db
+      .select({ numero: comprobantesContables.numero })
+      .from(comprobantesContables)
+      .where(comprobantesContables.numero.like(`${prefijo}-%`));
+    let maxNum = 0;
+    for (const r of resultados) {
+      const partes = r.numero.split('-');
+      const num = parseInt(partes[1], 10);
+      if (!isNaN(num) && num > maxNum) maxNum = num;
+    }
+    // Consultar el numeracion_actual del prefijo por si nunca se ha usado
+    const prefijoDbArr = await db.select().from(require('./models/prefijos.js').prefijos).where(eq(require('./models/prefijos.js').prefijos.prefijo, prefijo));
+    let sugerido = 1;
+    if (prefijoDbArr.length) {
+      sugerido = Math.max(maxNum + 1, prefijoDbArr[0].numeracion_actual);
+    } else {
+      sugerido = maxNum + 1;
+    }
+    res.json({ siguiente: sugerido });
+  } catch (err) {
+    res.status(500).json({ error: 'Error al calcular siguiente numeración', detalles: err.message });
+  }
+}
 // Endpoint para obtener fechas únicas de movimientos contables
 export async function getFechasMovimientos(req, res) {
   try {
@@ -90,6 +122,8 @@ export async function getTransacciones(req, res) {
 export async function createTransaccion(req, res) {
   try {
     const nuevaTransaccion = req.body;
+    // Log para depuración: ver la estructura de las cuentas recibidas
+    console.log('Cuentas recibidas en la transacción:', JSON.stringify(nuevaTransaccion.cuentas, null, 2));
     // Validar cuentas y montos
     if (!Array.isArray(nuevaTransaccion.cuentas) || nuevaTransaccion.cuentas.length === 0) {
       return res.status(400).json({ error: 'Debe incluir al menos una cuenta en la transacción.' });
@@ -98,13 +132,14 @@ export async function createTransaccion(req, res) {
     let totalDebito = 0;
     let totalCredito = 0;
     for (const cuenta of nuevaTransaccion.cuentas) {
-      // Validar existencia de la cuenta en el plan de cuentas
-      const cuentaDb = await db.select().from(planCuentas).where(eq(planCuentas.codigo, cuenta.codigo));
+      console.log('Cuenta recibida para validación:', JSON.stringify(cuenta, null, 2));
+      // Validar existencia de la cuenta en el plan de cuentas usando el id
+      const cuentaDb = await db.select().from(planCuentas).where(eq(planCuentas.id, cuenta.cuenta_id));
       if (cuentaDb.length === 0) {
-        errorCuentas.push(cuenta.codigo);
+        errorCuentas.push(cuenta.cuenta_id);
       }
       if (typeof cuenta.debito !== 'number' || typeof cuenta.credito !== 'number' || cuenta.debito < 0 || cuenta.credito < 0) {
-        errorCuentas.push(`Monto inválido en cuenta ${cuenta.codigo}`);
+        errorCuentas.push(`Monto inválido en cuenta ${cuenta.cuenta_id}`);
       }
       totalDebito += cuenta.debito;
       totalCredito += cuenta.credito;
@@ -114,6 +149,17 @@ export async function createTransaccion(req, res) {
     }
     if (totalDebito !== totalCredito) {
       return res.status(400).json({ error: 'La suma de débitos y créditos debe ser igual.' });
+    }
+    // Validación estricta de prefijo y numeración
+    const prefijoSeleccionado = nuevaTransaccion.prefijo;
+    const numeracion = Number(nuevaTransaccion.numeracion);
+    const prefijoDbArr = await db.select().from(require('./models/prefijos.js').prefijos).where(eq(require('./models/prefijos.js').prefijos.prefijo, prefijoSeleccionado));
+    if (!prefijoDbArr.length) {
+      return res.status(400).json({ error: 'Prefijo no encontrado.' });
+    }
+    const prefijoDb = prefijoDbArr[0];
+    if (numeracion !== prefijoDb.numeracion_actual) {
+      return res.status(400).json({ error: `La numeración no es válida para este prefijo. El siguiente número disponible es ${prefijoDb.numeracion_actual}` });
     }
     // Buscar el periodo correspondiente a la fecha
     let periodoId = null;
@@ -153,6 +199,10 @@ export async function createTransaccion(req, res) {
         credito: cuenta.credito,
       });
     }
+    // Actualizar numeracion_actual del prefijo usado
+    await db.update(require('./models/prefijos.js').prefijos)
+      .set({ numeracion_actual: prefijoDb.numeracion_actual + 1 })
+      .where(eq(require('./models/prefijos.js').prefijos.id, prefijoDb.id));
     res.status(201).json({ comprobante: insertedComprobante });
   } catch (err) {
     console.error('Error al crear transacción:', err);

@@ -1,3 +1,6 @@
+import { db } from './db';
+import { comprobantesContables } from '../shared/schema.ts';
+import { eq } from 'drizzle-orm';
 
 // ...existing code...
 

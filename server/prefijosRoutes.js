@@ -1,9 +1,12 @@
-import express from 'express';
+import { db } from './db';
 import { prefijos } from './models/prefijos.js';
 import { eq } from 'drizzle-orm';
-import { db } from './db.js';
 
+import express from 'express';
+import { getSiguienteNumeracion } from './transaccionesController.js';
 const router = express.Router();
+// Endpoint: /api/contabilidad/siguiente-numeracion?prefijo=CI
+router.get('/siguiente-numeracion', getSiguienteNumeracion);
 
 // Obtener todos los prefijos
 router.get('/prefijos', async (req, res) => {

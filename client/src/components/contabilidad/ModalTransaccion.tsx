@@ -20,139 +20,33 @@ type Cuenta = any;
 type Tercero = any;
 
 interface TipoTransaccion {
+
   id: number;
   nombre: string;
-  descripcion?: string;
-}
-interface Prefijo {
-  id: number;
-  tipo_transaccion_id: number;
-  prefijo: string;
-  numeracion_actual: number;
-  descripcion?: string;
-}
-interface Movimiento {
-  cuenta: Cuenta | null;
-  tercero: Tercero | null;
-  documentoCruce: string;
-  debito: number;
-  credito: number;
-  comentario: string;
-}
-interface ModalTransaccionProps {
-  open: boolean;
-  onClose: () => void;
-  onSave: (data: {
-    tipoTransaccion: number;
-    prefijo: string;
-    numeracion: number | string;
-    descripcion: string;
-    movimientos: Movimiento[];
-    tercero?: Tercero | null;
-    estado?: string;
-    periodo_id?: string;
-    tercero_id?: string;
-  }) => void;
-  tercero?: Tercero | null;
-  onTerceroChange?: (tercero: Tercero | null) => void;
+  // ...otros campos...
 }
 
-function ModalTransaccion({ open, onClose, onSave, tercero, onTerceroChange }: ModalTransaccionProps) {
-  const { user } = useAuth();
-  const [terceroLocal, setTerceroLocal] = useState<Tercero | null>(tercero || null);
-  const [unicoTercero, setUnicoTercero] = useState<boolean>(true);
-  const [showCrearCuenta, setShowCrearCuenta] = useState<boolean>(false);
-  // Estado para feedback de guardado
-  const [loading, setLoading] = useState(false);
+// --- Componente principal ---
+function ModalTransaccion(props: any) {
+  // ...existing code...
+
+  // Llama a handleGuardar con el estado actualmente seleccionado
+  const handleAprobarContabilizar = () => {
+    handleSave();
+  };
+  // Tipos mínimos si no existen
+  type Prefijo = any;
+  type Movimiento = any;
+
+  // Estados faltantes
+  const [terceroLocal, setTerceroLocal] = useState<Tercero | null>(null);
+  const [puc, setPuc] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-
-  // Función para enviar la transacción al backend
-  const handleAprobarContabilizar = async () => {
-    setError(null);
-    setSuccess(null);
-    if (!balanceado) {
-      setError('La transacción no está balanceada.');
-      return;
-    }
-    if (numeracionError) {
-      setError('Error en la numeración.');
-      return;
-    }
-    if (!fecha) {
-      setError('Debes seleccionar una fecha.');
-      return;
-    }
-    if (!terceroLocal) {
-      setError('Debes seleccionar un tercero para la transacción.');
-      return;
-    }
-    setLoading(true);
-    try {
-      // Validar número de documento único vía backend
-      const numeroDoc = `${prefijo}-${numeracion}`;
-      const checkRes = await fetch(`/api/contabilidad/comprobantes/numero/${encodeURIComponent(numeroDoc)}`);
-      if (checkRes.ok) {
-        const checkData = await checkRes.json();
-        if (checkData && checkData.exists) {
-          setError('Ya existe un documento con ese número.');
-          setLoading(false);
-          return;
-        }
-      }
-      // Construir movimientos para el backend
-      const movimientosBackend = movimientos.map(m => ({
-        cuenta_id: m.cuenta?.id,
-        tercero_id: m.tercero?.id || null,
-        descripcion: m.comentario || descripcion,
-        debito: Number(m.debito) || 0,
-        credito: Number(m.credito) || 0
-      }));
-      // Obtener periodo_id del contexto o prop (ajustar según integración real)
-      let periodo_id = undefined;
-      if (typeof window !== 'undefined') {
-        const urlParams = new URLSearchParams(window.location.search);
-        periodo_id = urlParams.get('periodo_id') || undefined;
-      }
-      const body = {
-        numero: numeroDoc,
-        tipo: tiposTransaccion.find(t => String(t.id) === tipoTransaccion)?.nombre || '',
-        fecha: typeof fecha === 'string' ? fecha : (fecha instanceof Date ? fecha.toISOString().substring(0, 10) : ''),
-        descripcion,
-        usuario_id: user?.id || 3,
-        movimientos: movimientosBackend,
-        periodo_id,
-        tercero_id: terceroLocal?.id
-      };
-      const res = await fetch('/api/contabilidad/comprobantes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        setError(data.error || 'Error al guardar la transacción');
-      } else {
-        setSuccess('Transacción guardada correctamente');
-        // Actualizar consecutivo localmente tras guardar
-        if (autoNumeracion && prefijosFiltrados.length > 0) {
-          const pref = prefijosFiltrados.find((p) => p.prefijo === prefijo);
-          if (pref) {
-            setNumeracion(String(Number(numeracion) + 1));
-          }
-        }
-        setTimeout(() => {
-          setSuccess(null);
-          onClose();
-        }, 1200);
-      }
-    } catch (err: any) {
-      setError('Error de red o inesperado');
-    } finally {
-      setLoading(false);
-    }
-  };
-  const [puc, setPuc] = useState<Cuenta[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [showCrearCuenta, setShowCrearCuenta] = useState<boolean>(false);
+  const [unicoTercero, setUnicoTercero] = useState<boolean>(false);
+  const { open, onClose, onSave, tercero, onTerceroChange } = props;
   const [showCrearTercero, setShowCrearTercero] = useState<boolean>(false);
   useEffect(() => {
     setTerceroLocal(tercero || null);
@@ -180,10 +74,10 @@ function ModalTransaccion({ open, onClose, onSave, tercero, onTerceroChange }: M
     if (open) {
       fetch("/api/contabilidad/tipos-transaccion")
         .then(res => res.json())
-        .then(data => setTiposTransaccion(data));
+        .then(data => setTiposTransaccion(Array.isArray(data) ? data : []));
       fetch("/api/contabilidad/prefijos")
         .then(res => res.json())
-        .then(data => setPrefijos(data));
+        .then(data => setPrefijos(Array.isArray(data) ? data : []));
       fetch("/api/contabilidad/puc")
         .then(res => res.json())
         .then(data => setPuc(Array.isArray(data) ? data : []));
@@ -195,11 +89,22 @@ function ModalTransaccion({ open, onClose, onSave, tercero, onTerceroChange }: M
   const prefijosFiltrados = prefijos.filter((p) => String(p.tipo_transaccion_id) === tipoTransaccion);
 
   // Sincroniza prefijo y numeración al cambiar tipo de transacción o lista de prefijos
+
   useEffect(() => {
     if (prefijosFiltrados.length > 0) {
       setPrefijo(prefijosFiltrados[0].prefijo);
       if (autoNumeracion) {
-        setNumeracion(String(prefijosFiltrados[0].numeracion_actual));
+        // Obtener el siguiente consecutivo real desde el backend
+        fetch(`/api/contabilidad/siguiente-numeracion?prefijo=${encodeURIComponent(prefijosFiltrados[0].prefijo)}`)
+          .then(res => res.json())
+          .then(data => {
+            if (data && data.siguiente) {
+              setNumeracion(String(data.siguiente));
+            } else {
+              setNumeracion(String(prefijosFiltrados[0].numeracion_actual));
+            }
+          })
+          .catch(() => setNumeracion(String(prefijosFiltrados[0].numeracion_actual)));
       }
     } else {
       setPrefijo("");
@@ -208,12 +113,17 @@ function ModalTransaccion({ open, onClose, onSave, tercero, onTerceroChange }: M
   }, [tipoTransaccion, prefijos]);
 
   // Sincroniza numeración al cambiar prefijo si está en modo automático
+
   useEffect(() => {
     if (autoNumeracion && prefijo) {
-      const pref = prefijosFiltrados.find((p) => p.prefijo === prefijo);
-      if (pref) {
-        setNumeracion(String(pref.numeracion_actual));
-      }
+      // Obtener el siguiente consecutivo real desde el backend
+      fetch(`/api/contabilidad/siguiente-numeracion?prefijo=${encodeURIComponent(prefijo)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.siguiente) {
+            setNumeracion(String(data.siguiente));
+          }
+        });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefijo]);
@@ -279,45 +189,59 @@ function ModalTransaccion({ open, onClose, onSave, tercero, onTerceroChange }: M
       const urlParams = new URLSearchParams(window.location.search);
       periodo_id = urlParams.get('periodo_id') || undefined;
     }
-    onSave({ tipoTransaccion: Number(tipoTransaccion), prefijo, numeracion, descripcion, movimientos, tercero: terceroLocal, estado, periodo_id });
+    // Si único tercero está activo, asignar el tercero a todos los movimientos
+    let movimientosAEnviar = movimientos;
+    if (unicoTercero && terceroLocal) {
+      movimientosAEnviar = movimientos.map(mov => ({ ...mov, tercero: terceroLocal }));
+    }
+    // Transformar movimientos: cuenta_id y tercero_id deben ser solo el id
+    const movimientosTransformados = movimientosAEnviar.map(mov => ({
+  cuenta_id: mov.cuenta?.id ?? mov.cuenta_id ?? null,
+      tercero_id: mov.tercero?.id ?? mov.tercero_id?.id ?? null,
+      descripcion: mov.descripcion || '',
+      debito: mov.debito,
+      credito: mov.credito
+    }));
+    onSave({ tipoTransaccion: Number(tipoTransaccion), prefijo, numeracion, descripcion, cuentas: movimientosTransformados, tercero: terceroLocal, estado, periodo_id });
   };
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-full" style={{ minWidth: 350, maxWidth: '75vw', overflowX: 'auto' }}>
-        <DialogHeader>
-          <DialogTitle>Nueva Transacción</DialogTitle>
-        </DialogHeader>
-        <div style={{ overflowX: 'auto', width: '100%' }}>
-          {/* Primera sección: datos principales */}
-          <div className="flex gap-4 mb-4 items-end flex-wrap">
-            {/* Selector de estado movido a la parte inferior */}
-            <div className="flex flex-col">
-              <label>Tipo de transacción</label>
-              <Select value={tipoTransaccion} onValueChange={setTipoTransaccion}>
-                <SelectTrigger>{tiposTransaccion.find((t) => String(t.id) === tipoTransaccion)?.nombre || "Selecciona"}</SelectTrigger>
-                <SelectContent>
-                  {tiposTransaccion.map((t) => (
-                    <SelectItem key={t.id} value={String(t.id)}>{t.nombre}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex flex-col">
-              <label>Prefijo</label>
-              <Select value={prefijo} onValueChange={setPrefijo}>
-                <SelectTrigger>{prefijo || "Selecciona"}</SelectTrigger>
-                <SelectContent>
-                  {prefijosFiltrados.map((p) => (
-                    <SelectItem key={p.id} value={p.prefijo}>{p.prefijo}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex flex-col">
-              <label className="flex items-center gap-2">
-                Numeracion
-                <Checkbox
+    <>
+      <Dialog open={open} onOpenChange={onClose}>
+        <DialogContent className="max-w-full" style={{ minWidth: 350, maxWidth: '75vw', overflowX: 'auto' }}>
+          <DialogHeader>
+            <DialogTitle>Nueva Transacción</DialogTitle>
+          </DialogHeader>
+          <div style={{ overflowX: 'auto', width: '100%' }}>
+            {/* Primera sección: datos principales */}
+            <div className="flex gap-4 mb-4 items-end flex-wrap">
+              {/* Selector de estado movido a la parte inferior */}
+              <div className="flex flex-col">
+                <label>Tipo de transacción</label>
+                <Select value={tipoTransaccion} onValueChange={setTipoTransaccion}>
+                  <SelectTrigger>{tiposTransaccion.find((t) => String(t.id) === tipoTransaccion)?.nombre || "Selecciona"}</SelectTrigger>
+                  <SelectContent>
+                    {tiposTransaccion.map((t) => (
+                      <SelectItem key={t.id} value={String(t.id)}>{t.nombre}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col">
+                <label>Prefijo</label>
+                <Select value={prefijo} onValueChange={setPrefijo}>
+                  <SelectTrigger>{prefijo || "Selecciona"}</SelectTrigger>
+                  <SelectContent>
+                    {prefijosFiltrados.map((p) => (
+                      <SelectItem key={p.id} value={p.prefijo}>{p.prefijo}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col">
+                <label className="flex items-center gap-2">
+                  Numeracion
+                  <Checkbox
                   checked={autoNumeracion}
                   onCheckedChange={(v) => setAutoNumeracion(!!v)}
                   className="ml-2"
@@ -531,6 +455,7 @@ function ModalTransaccion({ open, onClose, onSave, tercero, onTerceroChange }: M
               <select value={estado} onChange={e => setEstado(e.target.value as 'contabilizado' | 'borrador')} className="border p-2 rounded w-[160px] align-middle">
                 <option value="contabilizado">Contabilizado</option>
                 <option value="borrador">Borrador</option>
+                <option value="anulado">Anulado</option>
               </select>
             </div>
             <Button
@@ -538,37 +463,44 @@ function ModalTransaccion({ open, onClose, onSave, tercero, onTerceroChange }: M
               onClick={handleAprobarContabilizar}
               disabled={loading}
             >
-              {loading ? 'Guardando...' : 'Aprobar / Contabilizar'}
-            </Button>
-          {/* Feedback de error o éxito */}
-          {error && <div className="text-red-600 font-semibold mt-2">{error}</div>}
-          {success && <div className="text-green-600 font-semibold mt-2">{success}</div>}
-            <Button className="bg-red-600 text-white px-4 py-2 rounded mb-2 hover:bg-red-700 transition" onClick={onClose}>Cancelar</Button>
+                {loading ? 'Guardando...' : 'Aprobar / Contabilizar'}
+              </Button>
+              <Button className="bg-red-600 text-white px-4 py-2 rounded mb-2 hover:bg-red-700 transition" onClick={onClose}>Cancelar</Button>
+            </div>
+            {/* Modal para crear cuenta PUC (overlay sobre el modal de transacción) */}
+            {showCrearCuenta && (
+              <ModalCrearCuentaPUC
+                isOpen={showCrearCuenta}
+                onClose={() => setShowCrearCuenta(false)}
+                puc={puc}
+                onCreated={() => {
+                  setShowCrearCuenta(false);
+                  // Refrescar cuentas PUC tras crear una nueva
+                  fetch("/api/contabilidad/puc")
+                    .then(res => res.json())
+                    .then(data => setPuc(Array.isArray(data) ? data : []));
+                }}
+              />
+            )}
+            {/* Modal para crear tercero (ahora usando el mismo Modal para coherencia visual) */}
+            {showCrearTercero && (
+              <Modal onClose={() => setShowCrearTercero(false)}>
+                <TerceroForm isOpen={true} onClose={() => setShowCrearTercero(false)} mode="create" />
+              </Modal>
+            )}
           </div>
-          {/* Modal para crear cuenta PUC (overlay sobre el modal de transacción) */}
-          {showCrearCuenta && (
-            <ModalCrearCuentaPUC
-              isOpen={showCrearCuenta}
-              onClose={() => setShowCrearCuenta(false)}
-              puc={puc}
-              onCreated={() => {
-                setShowCrearCuenta(false);
-                // Refrescar cuentas PUC tras crear una nueva
-                fetch("/api/contabilidad/puc")
-                  .then(res => res.json())
-                  .then(data => setPuc(Array.isArray(data) ? data : []));
-              }}
-            />
-          )}
-          {/* Modal para crear tercero (ahora usando el mismo Modal para coherencia visual) */}
-          {showCrearTercero && (
-            <Modal onClose={() => setShowCrearTercero(false)}>
-              <TerceroForm isOpen={true} onClose={() => setShowCrearTercero(false)} mode="create" />
-            </Modal>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de notificaciones */}
+      <Dialog open={!!error || !!success} onOpenChange={() => { setError(null); setSuccess(null); }}>
+        <DialogContent className="max-w-md w-full text-center">
+          {error && <div className="text-red-600 font-semibold text-lg">{error}</div>}
+          {success && <div className="text-green-600 font-semibold text-lg">{success}</div>}
+          <Button className="mt-4" onClick={() => { setError(null); setSuccess(null); }}>Cerrar</Button>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 

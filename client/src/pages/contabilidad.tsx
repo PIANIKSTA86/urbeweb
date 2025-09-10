@@ -476,7 +476,7 @@ const Contabilidad: React.FC = () => {
                 tipo: "manual", // Puedes adaptar según tu lógica
                 estado: data.estado || 'borrador',
                 tercero_id: data.tercero?.id || null,
-                cuentas: data.movimientos.map(m => ({
+                cuentas: data.cuentas.map(m => ({
                   cuenta_id: m.cuenta,
                   tercero_id: m.tercero,
                   descripcion: m.comentario,
