@@ -1,5 +1,5 @@
 import { db } from './db';
-import { comprobantesContables } from '../shared/schema.ts';
+import { movimientosContables } from '../shared/schema.ts';
 import { eq } from 'drizzle-orm';
 
 // ...existing code...
@@ -14,13 +14,13 @@ const router = express.Router();
 
 // Endpoint para validar si existe un número de comprobante
 router.get('/comprobantes/numero/:numero', async (req, res) => {
-       try {
-	       const { numero } = req.params;
-	       const comprobante = await db.select().from(comprobantesContables).where(eq(comprobantesContables.numero, numero));
-	       res.json({ exists: comprobante.length > 0 });
-       } catch (err) {
-	       res.status(500).json({ error: 'Error al validar número de comprobante', detalles: err.message });
-       }
+	   try {
+		   const { numero } = req.params;
+		   const movimiento = await db.select().from(movimientosContables).where(eq(movimientosContables.numero, numero));
+		   res.json({ exists: movimiento.length > 0 });
+	   } catch (err) {
+		   res.status(500).json({ error: 'Error al validar número de comprobante', detalles: err.message });
+	   }
 });
 
 // Endpoint para fechas únicas de movimientos contables
@@ -47,7 +47,7 @@ router.get('/reportes/libro-diario', reportesController.getLibroDiario); // Libr
 
 // Endpoints para transacciones contables
 router.get('/transacciones', transaccionesController.getTransacciones); // Obtener todas las transacciones
-router.post('/transacciones', transaccionesController.createTransaccion); // Crear nueva transacción
+// router.post('/transacciones', transaccionesController.createTransaccion); // Crear nueva transacción
 router.put('/transacciones/:id', transaccionesController.updateTransaccion); // Editar transacción
 router.delete('/transacciones/:id', transaccionesController.deleteTransaccion); // Eliminar transacción
 

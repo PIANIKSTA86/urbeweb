@@ -1,18 +1,19 @@
 
-import { comprobantesContables, comprobanteDetalle, terceros, auditoria, planCuentas } from '../shared/schema.js';
+import { movimientosContables, movimientoDetalle, terceros, auditoria, planCuentas } from '../shared/schema.js';
 import { eq } from 'drizzle-orm';
 
 // Crear comprobante contable con movimientos y auditoría
 export async function createComprobante(req, res) {
+  console.log('DEBUG inicio createComprobante', req.body);
   try {
 
-    let { numero, tipo, fecha, descripcion, usuario_id, movimientos } = req.body;
+  let { numero, tipo, fecha, descripcion, usuario_id, movimientos, estado, periodo_id } = req.body;
     // Si fecha es string, convertir a Date
     if (typeof fecha === 'string') {
       fecha = new Date(fecha);
     }
 
-    await db.transaction(async (trx) => {
+  await db.transaction(async (trx) => {
       // Validación básica
       if (!numero || !tipo || !fecha || !Array.isArray(movimientos) || movimientos.length === 0) {
         throw new Error('Datos incompletos para el comprobante.');
@@ -21,10 +22,14 @@ export async function createComprobante(req, res) {
       // Validar que todas las cuentas y terceros existen y sumar débitos/créditos
       let totalDebito = 0, totalCredito = 0;
       for (const mov of movimientos) {
+        if (mov.cuenta_id == null) {
+          throw new Error('No se puede registrar un movimiento sin cuenta_id.');
+        }
         const cuenta = await trx.select().from(planCuentas).where(eq(planCuentas.id, mov.cuenta_id));
         if (!cuenta.length) {
           throw new Error(`Cuenta no existe: ${mov.cuenta_id}`);
         }
+        // Validar tercero por movimiento
         if (mov.tercero_id) {
           const tercero = await trx.select().from(terceros).where(eq(terceros.id, mov.tercero_id));
           if (!tercero.length) {
@@ -45,17 +50,49 @@ export async function createComprobante(req, res) {
 
 
 
-  // Insertar comprobante y obtener id (MySQL: insertId)
-  const result = await trx.insert(comprobantesContables).values({ numero, tipo, fecha, descripcion, usuario_id, estado: 'activo' });
-  const comprobante_id = result.insertId || (Array.isArray(result) && result[0]?.insertId) || result;
+      // Insertar comprobante y obtener id (MySQL: insertId)
 
+  console.log('DEBUG antes de insert movimientosContables', { numero, tipo, fecha, descripcion, usuario_id, estado, periodo_id });
+      const result = await trx.insert(movimientosContables).values({ 
+        numero, 
+        tipo, 
+        fecha, 
+        descripcion, 
+        usuario_id, 
+        estado: estado || 'borrador',
+        periodo_id: periodo_id || null
+      });
+  console.log('DEBUG despues de insert movimientosContables', result);
+      let movimiento_id = undefined;
+      if (result && typeof result === 'object') {
+        if ('insertId' in result && result.insertId) {
+          movimiento_id = result.insertId;
+        } else if (Array.isArray(result) && result[0]?.insertId) {
+          movimiento_id = result[0].insertId;
+        } else if ('lastInsertId' in result && result.lastInsertId) {
+          movimiento_id = result.lastInsertId;
+        } else if ('id' in result && result.id) {
+          movimiento_id = result.id;
+        }
+      } else if (typeof result === 'number') {
+        movimiento_id = result;
+      }
+      console.log('DEBUG movimiento_id:', movimiento_id, 'result:', result);
+      if (!movimiento_id || isNaN(Number(movimiento_id))) {
+        throw new Error('No se pudo obtener el ID del comprobante insertado. Valor devuelto: ' + JSON.stringify(result));
+      }
 
       // Insertar movimientos con el id correcto
       for (const mov of movimientos) {
-        await trx.insert(comprobanteDetalle).values({
-          comprobante_id,
+        if (!movimiento_id) {
+          throw new Error('movimiento_id indefinido al insertar detalle.');
+        }
+        await trx.insert(movimientoDetalle).values({
+          movimiento_id,
           cuenta_id: mov.cuenta_id,
           tercero_id: mov.tercero_id || null,
+          documento_cruce: mov.documentoCruce || null,
+          comentario: mov.comentario || null,
           descripcion: mov.descripcion || descripcion,
           debito: mov.debito || 0,
           credito: mov.credito || 0
@@ -70,7 +107,7 @@ export async function createComprobante(req, res) {
         fecha: new Date()
       });
 
-  res.status(201).json({ comprobante_id });
+  res.status(201).json({ movimiento_id });
     });
   } catch (err) {
     console.error('Error al crear comprobante:', err);

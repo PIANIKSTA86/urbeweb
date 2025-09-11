@@ -1,7 +1,7 @@
-// Tabla comprobante_detalle
-export const comprobanteDetalle = mysqlTable("comprobante_detalle", {
+// Tabla movimiento_detalle
+export const movimientoDetalle = mysqlTable("movimiento_detalle", {
   id: int("id").primaryKey().autoincrement().notNull(),
-  comprobante_id: int("comprobante_id").notNull(),
+  movimiento_id: int("movimiento_id").notNull(),
   cuenta_id: int("cuenta_id").notNull(),
   tercero_id: int("tercero_id"),
   descripcion: text("descripcion"),
@@ -132,7 +132,7 @@ export const periodosContables = mysqlTable("periodos_contables", {
   updated_at: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`).notNull(),
 });
 
-export const comprobantesContables = mysqlTable("comprobantes_contables", {
+export const movimientosContables = mysqlTable("movimientos_contables", {
   id: int("id").primaryKey().autoincrement().notNull(),
   numero: varchar("numero", { length: 50 }).notNull(),
   tipo: mysqlEnum("tipo", ['venta', 'compra', 'ingreso', 'egreso', 'nota']).notNull(),
@@ -141,18 +141,6 @@ export const comprobantesContables = mysqlTable("comprobantes_contables", {
   descripcion: text("descripcion"),
   estado: mysqlEnum("estado", ['activo', 'anulado', 'registrado']).notNull().default('registrado'),
   usuario_id: int("usuario_id").notNull(),
-  created_at: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
-  updated_at: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`),
-});
-
-export const movimientosContables = mysqlTable("movimientos_contables", {
-  id: int("id").primaryKey().autoincrement().notNull(),
-  comprobante_id: int("comprobante_id").notNull(),
-  cuenta_id: int("cuenta_id").notNull(),
-  tercero_id: int("tercero_id"),
-  descripcion: text("descripcion"),
-  debito: decimal("debito", { precision: 18, scale: 2 }).default('0.00'),
-  credito: decimal("credito", { precision: 18, scale: 2 }).default('0.00'),
   created_at: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
   updated_at: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`),
 });
@@ -196,89 +184,55 @@ export const unidadesRelations = relations(unidades, ({ one, many }) => ({
   facturas: many(facturas),
 }));
 
-export const comprobantesRelations = relations(comprobantesContables, ({ one, many }) => ({
-  // periodo: one(periodosContables, {
-  //   fields: [comprobantesContables.periodo_id],
-  //   references: [periodosContables.id]
-  // }),
-  usuario: one(usuarios, {
-    fields: [comprobantesContables.usuario_id],
-    references: [usuarios.id]
-  }),
-  movimientos: many(movimientosContables),
-}));
-
-export const movimientosRelations = relations(movimientosContables, ({ one }) => ({
-  comprobante: one(comprobantesContables, {
-    fields: [movimientosContables.comprobante_id],
-    references: [comprobantesContables.id]
-  }),
-  cuenta: one(planCuentas, {
-    fields: [movimientosContables.cuenta_id],
-    references: [planCuentas.id]
-  }),
-  tercero: one(terceros, {
-    fields: [movimientosContables.tercero_id],
-    references: [terceros.id]
-  }),
-}));
+// Relaciones antiguas eliminadas. Si necesitas relaciones para movimientosContables y movimientoDetalle, agrégalas aquí según la nueva estructura.
 
 // Schemas de inserción
 export const insertUsuarioSchema = createInsertSchema(usuarios).omit({
   id: true,
   fechaCreacion: true,
-  fechaActualizacion: true,
+  fechaActualizacion: true
 });
 
 export const insertTerceroSchema = createInsertSchema(terceros).omit({
   id: true,
   fechaCreacion: true,
-  fechaActualizacion: true,
+  fechaActualizacion: true
 });
 
 export const insertUnidadSchema = createInsertSchema(unidades).omit({
   id: true,
   fechaCreacion: true,
-  fechaActualizacion: true,
+  fechaActualizacion: true
 }).extend({
   area: z.number(),
   coeficiente: z.number(),
   cuotaAdministracion: z.number(),
-  cuotaParqueadero: z.number().nullable(),
+  cuotaParqueadero: z.number().nullable()
 });
 
 export const insertPlanCuentaSchema = createInsertSchema(planCuentas).omit({
   id: true,
   fecha_creacion: true,
-  updated_at: true,
+  updated_at: true
 });
 
-export const insertComprobanteSchema = createInsertSchema(comprobantesContables).omit({
-  id: true,
-  created_at: true,
-  updated_at: true,
-});
+
 
 export const insertMovimientoSchema = createInsertSchema(movimientosContables).omit({
   id: true,
   created_at: true,
-  updated_at: true,
+  updated_at: true
 });
 
-// Tipos de inferencia
+// Tipos de inferencia actualizados
 export type Usuario = typeof usuarios.$inferSelect;
 export type InsertUsuario = z.infer<typeof insertUsuarioSchema>;
-
 export type Tercero = typeof terceros.$inferSelect;
 export type InsertTercero = z.infer<typeof insertTerceroSchema>;
-
 export type Unidad = typeof unidades.$inferSelect;
 export type InsertUnidad = z.infer<typeof insertUnidadSchema>;
-
 export type PlanCuenta = typeof planCuentas.$inferSelect;
 export type InsertPlanCuenta = z.infer<typeof insertPlanCuentaSchema>;
-
 export type PeriodoContable = typeof periodosContables.$inferSelect;
-export type ComprobanteContable = typeof comprobantesContables.$inferSelect;
 export type MovimientoContable = typeof movimientosContables.$inferSelect;
 export type Factura = typeof facturas.$inferSelect;

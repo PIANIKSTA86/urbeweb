@@ -1,6 +1,6 @@
 import express from 'express';
 import { v4 as uuidv4 } from 'uuid';
-import { periodosContables, comprobantesContables, facturas } from '../shared/schema.ts';
+import { periodosContables, movimientosContables, facturas } from '../shared/schema.ts';
 import { eq } from 'drizzle-orm';
 import { db } from './db.js';
 
@@ -74,10 +74,10 @@ router.put('/periodos/:id', async (req, res) => {
 router.delete('/periodos/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    // Verificar comprobantes asociados
-    const comprobantes = await db.select().from(comprobantesContables).where(eq(comprobantesContables.periodo_id, id));
-    if (comprobantes.length > 0) {
-      return res.status(400).json({ error: 'No se puede eliminar el periodo: existen comprobantes asociados.' });
+    // Verificar movimientos asociados
+    const movimientos = await db.select().from(movimientosContables).where(eq(movimientosContables.periodo_id, id));
+    if (movimientos.length > 0) {
+      return res.status(400).json({ error: 'No se puede eliminar el periodo: existen movimientos asociados.' });
     }
     // Verificar facturas asociadas
     const facturasList = await db.select().from(facturas).where(eq(facturas.periodoId, id));

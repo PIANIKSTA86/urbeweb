@@ -4,7 +4,7 @@ import {
   unidades,
   planCuentas,
   periodosContables,
-  comprobantesContables,
+  movimientosContables,
   movimientosContables,
   facturas,
   type Usuario,
@@ -16,7 +16,7 @@ import {
   type PlanCuenta,
   type InsertPlanCuenta,
   type PeriodoContable,
-  type ComprobanteContable,
+  // type ComprobanteContable, // Eliminado
   type MovimientoContable,
   type Factura
 } from "@shared/schema";
@@ -56,8 +56,8 @@ export interface IStorage {
   getPeriodoActual(): Promise<PeriodoContable | undefined>;
   
   // Operaciones de comprobantes y movimientos
-  getComprobantes(periodoId?: string): Promise<ComprobanteContable[]>;
-  crearComprobante(comprobante: any): Promise<ComprobanteContable>;
+  getMovimientos(periodoId?: string): Promise<MovimientoContable[]>;
+  crearMovimiento(movimiento: any): Promise<MovimientoContable>;
   
   // Estadísticas del dashboard
   getEstadisticasDashboard(): Promise<any>;
@@ -352,21 +352,20 @@ export class DatabaseStorage implements IStorage {
     return periodo;
   }
 
-  // Operaciones de comprobantes
-  async getComprobantes(periodoId?: string): Promise<ComprobanteContable[]> {
-    const whereCondition = periodoId ? eq(comprobantesContables.periodoId, periodoId) : undefined;
-    
-    return await db.select().from(comprobantesContables)
+  // Operaciones de movimientos contables
+  async getMovimientos(periodoId?: string): Promise<MovimientoContable[]> {
+    const whereCondition = periodoId ? eq(movimientosContables.periodo_id, periodoId) : undefined;
+    return await db.select().from(movimientosContables)
       .where(whereCondition)
-      .orderBy(desc(comprobantesContables.fechaCreacion));
+      .orderBy(desc(movimientosContables.fecha));
   }
 
-  async crearComprobante(datosComprobante: any): Promise<ComprobanteContable> {
-    const [comprobante] = await db
-      .insert(comprobantesContables)
-      .values(datosComprobante)
+  async crearMovimiento(datosMovimiento: any): Promise<MovimientoContable> {
+    const [movimiento] = await db
+      .insert(movimientosContables)
+      .values(datosMovimiento)
       .returning();
-    return comprobante;
+    return movimiento;
   }
 
   // Estadísticas del dashboard

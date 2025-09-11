@@ -469,22 +469,24 @@ const Contabilidad: React.FC = () => {
             onSave={async (data: any) => {
               // Adaptar datos para backend
               const nuevaTransaccion = {
-                documento: `${data.prefijo}-${data.numeracion}`,
-                descripcion: data.descripcion,
+                numero: `${data.prefijo}-${data.numeracion}`,
+                tipo: data.tipo || "manual",
                 fecha: new Date().toISOString().slice(0, 10),
+                descripcion: data.descripcion,
                 usuario_id: 3, // Cambia por el usuario real si lo tienes
-                tipo: "manual", // Puedes adaptar según tu lógica
                 estado: data.estado || 'borrador',
-                tercero_id: data.tercero?.id || null,
-                cuentas: data.cuentas.map(m => ({
-                  cuenta_id: m.cuenta,
-                  tercero_id: m.tercero,
-                  descripcion: m.comentario,
+                periodo_id: data.periodo_id || undefined,
+                movimientos: (data.movimientos || []).map((m: any) => ({
+                  cuenta_id: m.cuenta_id,
+                  tercero_id: m.tercero_id,
+                  documentoCruce: m.documentoCruce,
+                  comentario: m.comentario,
+                  descripcion: m.descripcion,
                   debito: Number(m.debito),
                   credito: Number(m.credito),
                 }))
               };
-              await fetch('/api/contabilidad/transacciones', {
+              await fetch('/api/contabilidad/comprobantes', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(nuevaTransaccion)
@@ -496,6 +498,7 @@ const Contabilidad: React.FC = () => {
             }}
             tercero={terceroSeleccionado}
             onTerceroChange={setTerceroSeleccionado}
+            periodos={periodos}
           />
         )}
         </main>

@@ -28,6 +28,7 @@ interface TipoTransaccion {
 
 // --- Componente principal ---
 function ModalTransaccion(props: any) {
+  const { periodos = [] } = props;
   // ...existing code...
 
   // Llama a handleGuardar con el estado actualmente seleccionado
@@ -63,6 +64,7 @@ function ModalTransaccion(props: any) {
     { cuenta: null, tercero: null, documentoCruce: "", debito: 0, credito: 0, comentario: "" },
   ]);
   const [fecha, setFecha] = useState<Date | undefined>(undefined);
+  const [periodoId, setPeriodoId] = useState<string | undefined>(undefined);
   // Estado de la transacción (borrador o contabilizado)
   const [estado, setEstado] = useState<'borrador' | 'contabilizado'>('contabilizado');
 
@@ -166,14 +168,54 @@ function ModalTransaccion(props: any) {
   const totalCredito = movimientos.reduce((acc, m) => acc + Number(m.credito), 0);
   const balanceado = totalDebito === totalCredito;
 
-  // Se asume que el periodo_id se recibe como prop o desde el contexto de la página principal
+  // El periodo se determina solo al guardar, no al cambiar la fecha
+  // Por lo tanto, periodoId se calcula en handleSave
+
+  // Guardar transacción solo si hay periodo válido
   const handleSave = async () => {
     if (!balanceado || numeracionError) return;
     if (!terceroLocal) {
       setError('Debes seleccionar un tercero para la transacción.');
       return;
     }
-    const numeroDoc = `${prefijo}-${numeracion}`;
+    // Determinar periodo activo para la fecha seleccionada
+    let periodoIdLocal: string | undefined = undefined;
+    if (fecha && periodos.length > 0) {
+      // Usar siempre los campos fecha_inicio y fecha_fin, comparar como string YYYY-MM-DD
+      const fechaStr = fecha.toISOString().slice(0, 10);
+      const periodo = periodos.find((p: any) => {
+        const inicioStr = (p.fecha_inicio || '').slice(0, 10);
+        const finStr = (p.fecha_fin || p.fecha_cierre || '').slice(0, 10);
+        const estado = (p.estado || p.estado_periodo || '').toString().toLowerCase();
+        return fechaStr >= inicioStr && fechaStr <= finStr && (estado.includes('abierto') || estado.includes('activo'));
+      });
+      if (periodo) {
+        periodoIdLocal = periodo.id;
+      }
+    }
+    if (!periodoIdLocal) {
+      setError('No es posible guardar la transacción: la fecha seleccionada no pertenece a ningún periodo contable activo o abierto. Por favor, revisa la fecha o consulta la configuración de periodos.');
+      return;
+    }
+    // Validar que todos los movimientos tengan cuenta_id
+    const movimientosInvalidos = movimientos.filter(mov => !(mov.cuenta?.id ?? mov.cuenta_id));
+    if (movimientosInvalidos.length > 0) {
+      setError('Todos los movimientos deben tener una cuenta seleccionada.');
+      return;
+    }
+    // Sincronizar numeración con backend antes de guardar
+    let numeracionFinal = numeracion;
+    if (autoNumeracion && prefijo) {
+      try {
+        const resNum = await fetch(`/api/contabilidad/siguiente-numeracion?prefijo=${encodeURIComponent(prefijo)}`);
+        const dataNum = await resNum.json();
+        if (dataNum && dataNum.siguiente) {
+          numeracionFinal = String(dataNum.siguiente);
+          setNumeracion(numeracionFinal);
+        }
+      } catch {}
+    }
+    const numeroDoc = `${prefijo}-${numeracionFinal}`;
     const res = await fetch(`/api/contabilidad/comprobantes/numero/${encodeURIComponent(numeroDoc)}`);
     if (res.ok) {
       const data = await res.json();
@@ -182,27 +224,25 @@ function ModalTransaccion(props: any) {
         return;
       }
     }
-    // Obtener periodo_id del contexto o prop (ajustar según integración real)
-    let periodo_id = undefined;
-    if (typeof window !== 'undefined') {
-      // Buscar en la URL o en el contexto global de la app
-      const urlParams = new URLSearchParams(window.location.search);
-      periodo_id = urlParams.get('periodo_id') || undefined;
-    }
     // Si único tercero está activo, asignar el tercero a todos los movimientos
     let movimientosAEnviar = movimientos;
     if (unicoTercero && terceroLocal) {
       movimientosAEnviar = movimientos.map(mov => ({ ...mov, tercero: terceroLocal }));
     }
-    // Transformar movimientos: cuenta_id y tercero_id deben ser solo el id
+    // Transformar movimientos: cuenta_id y tercero_id deben ser solo el id, y enviar documentoCruce y comentario
     const movimientosTransformados = movimientosAEnviar.map(mov => ({
-  cuenta_id: mov.cuenta?.id ?? mov.cuenta_id ?? null,
+      cuenta_id: mov.cuenta?.id ?? mov.cuenta_id ?? null,
       tercero_id: mov.tercero?.id ?? mov.tercero_id?.id ?? null,
+      documentoCruce: mov.documentoCruce || '',
+      comentario: mov.comentario || '',
       descripcion: mov.descripcion || '',
       debito: mov.debito,
       credito: mov.credito
     }));
-    onSave({ tipoTransaccion: Number(tipoTransaccion), prefijo, numeracion, descripcion, cuentas: movimientosTransformados, tercero: terceroLocal, estado, periodo_id });
+    // Buscar el objeto del tipo seleccionado
+    const tipoObj = tiposTransaccion.find(t => String(t.id) === String(tipoTransaccion));
+    const tipo = tipoObj ? tipoObj.nombre : tipoTransaccion;
+    onSave({ tipo, prefijo, numeracion: numeracionFinal, descripcion, movimientos: movimientosTransformados, estado, periodo_id: periodoIdLocal });
   };
 
   return (
@@ -263,7 +303,16 @@ function ModalTransaccion(props: any) {
                 type="date"
                 className="w-[200px]"
                 value={fecha ? fecha.toISOString().substring(0, 10) : ""}
-                onChange={e => setFecha(e.target.value ? new Date(e.target.value) : undefined)}
+                onChange={e => {
+                  // Crear fecha en UTC para evitar desfases
+                  if (e.target.value) {
+                    const [year, month, day] = e.target.value.split('-');
+                    setFecha(new Date(Date.UTC(Number(year), Number(month) - 1, Number(day))));
+                  } else {
+                    setFecha(undefined);
+                  }
+                }}
+                // min y max eliminados para permitir cualquier fecha
               />
             </div>
             <div className="flex flex-col min-w-[320px]">
