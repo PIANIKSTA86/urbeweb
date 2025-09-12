@@ -127,12 +127,25 @@ const Contabilidad: React.FC = () => {
         .then(res => res.ok ? res.json() : [])
         .then(data => {
           setPeriodos(Array.isArray(data) ? data : []);
-          // Seleccionar por defecto el periodo activo más reciente
+          // Seleccionar por defecto el periodo más cercano a la fecha actual
+          const hoy = new Date();
+          const hoyStr = hoy.toISOString().slice(0, 10);
           const activos = (Array.isArray(data) ? data : []).filter((p: any) => p.estado === 'abierto' || p.estado === 'activo');
+          let periodoCercano = null;
           if (activos.length > 0) {
-            // Ordenar por año y mes descendente
-            activos.sort((a: any, b: any) => (b.anio || b.ano) - (a.anio || a.ano) || b.mes - a.mes);
-            setFilterPeriodo(activos[0].id);
+            periodoCercano = activos.find((p: any) => {
+              const inicio = p.fecha_inicio ? new Date(p.fecha_inicio).toISOString().slice(0, 10) : null;
+              const fin = p.fecha_fin ? new Date(p.fecha_fin).toISOString().slice(0, 10) : (p.fecha_cierre ? new Date(p.fecha_cierre).toISOString().slice(0, 10) : null);
+              return inicio && fin && hoyStr >= inicio && hoyStr <= fin;
+            });
+            // Si no hay periodo que contenga la fecha actual, seleccionar el más reciente activo
+            if (!periodoCercano) {
+              activos.sort((a: any, b: any) => (b.anio || b.ano) - (a.anio || a.ano) || b.mes - a.mes);
+              periodoCercano = activos[0];
+            }
+            if (periodoCercano) {
+              setFilterPeriodo(periodoCercano.id);
+            }
           }
         });
     }
@@ -232,9 +245,21 @@ const Contabilidad: React.FC = () => {
               {/* Filtro por periodo contable */}
               <select value={filterPeriodo} onChange={e => { setFilterPeriodo(e.target.value); setMovPage(1); }} className="border p-2 rounded min-w-[160px]">
                 <option value="">Todos los periodos</option>
-                {periodos.map((p: any) => (
-                  <option key={p.id} value={p.id}>{p.anio}-{p.mes}</option>
-                ))}
+                {periodos.map((p: any) => {
+                  const mes = String(p.mes).padStart(2, '0');
+                  const anio = p.anio || p.ano;
+                  let tipo = '';
+                  if ((p.tipo || '').toLowerCase().includes('cierre') || (p.estado || '').toLowerCase().includes('cierre')) {
+                    tipo = ' (Cierre)';
+                  } else if ((p.tipo || '').toLowerCase().includes('ajuste')) {
+                    tipo = ' (Ajuste)';
+                  }
+                  return (
+                    <option key={p.id} value={p.id}>
+                      {anio}-{mes}{tipo}
+                    </option>
+                  );
+                })}
               </select>
               {/* Filtro por tipo de documento dinámico */}
               <select value={movFilterTipoDocumento} onChange={e => { setMovFilterTipoDocumento(e.target.value); setMovPage(1); }} className="border p-2 rounded min-w-[160px]">
@@ -285,8 +310,14 @@ const Contabilidad: React.FC = () => {
                   </thead>
                   <tbody>
                     {movimientos.map((mov: any) => {
-                      const totalDebito = mov.movimientos?.reduce((sum: number, m: any) => sum + Number(m.valorDebito || 0), 0) || 0;
-                      const totalCredito = mov.movimientos?.reduce((sum: number, m: any) => sum + Number(m.valorCredito || 0), 0) || 0;
+                      const totalDebito = mov.movimientos?.reduce((sum: number, m: any) => sum + (typeof m.debito === 'number' ? m.debito : Number(m.debito) || 0), 0) || 0;
+                      const totalCredito = mov.movimientos?.reduce((sum: number, m: any) => sum + (typeof m.credito === 'number' ? m.credito : Number(m.credito) || 0), 0) || 0;
+                      // Nombre de tercero: busca el primero con tercero o tercero_id expandido
+                      let nombreTercero = "-";
+                      if (mov.movimientos?.length) {
+                        const movTercero = mov.movimientos.find((m: any) => m.tercero?.razonSocial) || mov.movimientos[0];
+                        nombreTercero = movTercero.tercero?.razonSocial || movTercero.terceroRazonSocial || movTercero.tercero_nombre || "-";
+                      }
                       return (
                         <tr key={mov.id}>
                           <td className="border px-2 py-1">{mov.tipoTransaccion || "-"}</td>
@@ -294,7 +325,7 @@ const Contabilidad: React.FC = () => {
                           <td className="border px-2 py-1">{mov.numeroComprobante}</td>
                           <td className="border px-2 py-1">{totalDebito.toLocaleString()}</td>
                           <td className="border px-2 py-1">{totalCredito.toLocaleString()}</td>
-                          <td className="border px-2 py-1">{mov.movimientos?.[0]?.terceroRazonSocial || "-"}</td>
+                          <td className="border px-2 py-1">{nombreTercero}</td>
                           <td className="border px-2 py-1">{mov.concepto}</td>
                           <td className="border px-2 py-1">{mov.estado || "-"}</td>
                           <td className="border px-2 py-1">

@@ -174,9 +174,18 @@ function ModalTransaccion(props: any) {
   // Guardar transacción solo si hay periodo válido
   const handleSave = async () => {
     if (!balanceado || numeracionError) return;
-    if (!terceroLocal) {
-      setError('Debes seleccionar un tercero para la transacción.');
-      return;
+    if (unicoTercero) {
+      if (!terceroLocal) {
+        setError('Debes seleccionar un tercero para la transacción.');
+        return;
+      }
+    } else {
+      // Validar que cada movimiento tenga un tercero
+      const movimientosSinTercero = movimientos.filter(mov => !(mov.tercero?.id ?? mov.tercero_id?.id ?? mov.tercero_id));
+      if (movimientosSinTercero.length > 0) {
+        setError('Todos los movimientos deben tener un tercero seleccionado.');
+        return;
+      }
     }
     // Determinar periodo activo para la fecha seleccionada
     let periodoIdLocal: string | undefined = undefined;
