@@ -309,22 +309,29 @@ const Contabilidad: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
+                    {/* Debug solo en consola, no en el DOM */}
+                    {(() => { console.log('DEBUG movimientos:', movimientos); return null; })()}
                     {movimientos.map((mov: any) => {
-                      const totalDebito = mov.movimientos?.reduce((sum: number, m: any) => sum + (typeof m.debito === 'number' ? m.debito : Number(m.debito) || 0), 0) || 0;
-                      const totalCredito = mov.movimientos?.reduce((sum: number, m: any) => sum + (typeof m.credito === 'number' ? m.credito : Number(m.credito) || 0), 0) || 0;
-                      // Nombre de tercero: busca el primero con tercero o tercero_id expandido
+                      const totalDebito = mov.detalles?.reduce((sum: number, m: any) => sum + (typeof m.debito === 'number' ? m.debito : Number(m.debito) || 0), 0) || 0;
+                      const totalCredito = mov.detalles?.reduce((sum: number, m: any) => sum + (typeof m.credito === 'number' ? m.credito : Number(m.credito) || 0), 0) || 0;
+                      // Nombre de tercero: busca el primero con nombre, si no muestra el ID
                       let nombreTercero = "-";
-                      if (mov.movimientos?.length) {
-                        const movTercero = mov.movimientos.find((m: any) => m.tercero?.razonSocial) || mov.movimientos[0];
-                        nombreTercero = movTercero.tercero?.razonSocial || movTercero.terceroRazonSocial || movTercero.tercero_nombre || "-";
+                      if (mov.detalles?.length) {
+                        const movTercero = mov.detalles.find((m: any) => m.tercero?.razonSocial || m.tercero_nombre || m.terceroRazonSocial);
+                        if (movTercero) {
+                          nombreTercero = movTercero.tercero?.razonSocial || movTercero.tercero_nombre || movTercero.terceroRazonSocial || movTercero.tercero_id || "-";
+                        } else {
+                          // Si ninguno tiene nombre, mostrar el ID del primero
+                          nombreTercero = mov.detalles[0].tercero_id || "-";
+                        }
                       }
                       return (
                         <tr key={mov.id}>
                           <td className="border px-2 py-1">{mov.tipoTransaccion || "-"}</td>
                           <td className="border px-2 py-1">{mov.fecha ? mov.fecha.slice(0, 10) : '-'}</td>
                           <td className="border px-2 py-1">{mov.numeroComprobante}</td>
-                          <td className="border px-2 py-1">{totalDebito.toLocaleString()}</td>
-                          <td className="border px-2 py-1">{totalCredito.toLocaleString()}</td>
+                          <td className="border px-2 py-1">{Number(totalDebito).toLocaleString()}</td>
+                          <td className="border px-2 py-1">{Number(totalCredito).toLocaleString()}</td>
                           <td className="border px-2 py-1">{nombreTercero}</td>
                           <td className="border px-2 py-1">{mov.concepto}</td>
                           <td className="border px-2 py-1">{mov.estado || "-"}</td>
