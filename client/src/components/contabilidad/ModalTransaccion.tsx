@@ -242,7 +242,7 @@ function ModalTransaccion(props: any) {
     // Buscar el objeto del tipo seleccionado
     const tipoObj = tiposTransaccion.find(t => String(t.id) === String(tipoTransaccion));
     const tipo = tipoObj ? tipoObj.nombre : tipoTransaccion;
-    onSave({ tipo, prefijo, numeracion: numeracionFinal, descripcion, movimientos: movimientosTransformados, estado, periodo_id: periodoIdLocal });
+  onSave({ tipo, prefijo, numeracion: numeracionFinal, descripcion, movimientos: movimientosTransformados, estado, periodo_id: periodoIdLocal, fecha });
   };
 
   return (

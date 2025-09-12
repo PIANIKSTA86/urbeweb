@@ -471,7 +471,7 @@ const Contabilidad: React.FC = () => {
               const nuevaTransaccion = {
                 numero: `${data.prefijo}-${data.numeracion}`,
                 tipo: data.tipo || "manual",
-                fecha: new Date().toISOString().slice(0, 10),
+                fecha: data.fecha ? (typeof data.fecha === 'string' ? data.fecha : data.fecha.toISOString().slice(0, 10)) : new Date().toISOString().slice(0, 10),
                 descripcion: data.descripcion,
                 usuario_id: 3, // Cambia por el usuario real si lo tienes
                 estado: data.estado || 'borrador',
