@@ -56,7 +56,7 @@ import { eq, and, lte, gte } from 'drizzle-orm';
 // Obtener todas las transacciones
 export async function getTransacciones(req, res) {
   try {
-  const { page = 1, pageSize = 20, fecha, descripcion, estado, periodo_id } = req.query;
+    const { page = 1, pageSize = 20, fecha, descripcion, estado, periodo_id, tipoDocumento } = req.query;
     let whereClause = [];
     // Filter by fecha
     if (fecha) {
@@ -73,6 +73,10 @@ export async function getTransacciones(req, res) {
     // Filtrar por periodo_id directamente (UUID)
     if (periodo_id) {
       whereClause.push(eq(movimientosContables.periodo_id, periodo_id));
+    }
+    // Filtro por tipo de documento (campo 'tipo')
+    if (tipoDocumento) {
+      whereClause.push(eq(movimientosContables.tipo, tipoDocumento));
     }
     const offset = (parseInt(page) - 1) * parseInt(pageSize);
     const movimientos = await db.select().from(movimientosContables)

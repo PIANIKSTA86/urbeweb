@@ -181,31 +181,33 @@ const Contabilidad: React.FC = () => {
         .catch((err) => setErrorPuc(err.message))
         .finally(() => setLoadingPuc(false));
     }
-    if (activeTab === "movimientos") {
-      setLoadingMov(true);
-      const params = new URLSearchParams({
-        page: movPage.toString(),
-        pageSize: movPageSize.toString(),
-        ...(filterFecha ? { fecha: filterFecha } : {}),
-        ...(filterDescripcion ? { descripcion: filterDescripcion } : {}),
-        ...(movFilterTipoDocumento ? { tipoDocumento: movFilterTipoDocumento } : {}),
-        ...(movFilterEstado ? { estado: movFilterEstado } : {}),
-        ...(filterPeriodo ? { periodo_id: filterPeriodo } : {}),
-      });
-      fetch(`/api/contabilidad/transacciones?${params}`)
-        .then((res) => {
-          if (!res.ok) throw new Error("Error al obtener movimientos");
-          return res.json();
-        })
-        .then((data) => {
-          setMovimientos(data.data);
-          setMovTotal(data.total);
-          setErrorMov("");
-        })
-        .catch((err) => setErrorMov(err.message))
-        .finally(() => setLoadingMov(false));
-    }
-  }, [activeTab, movPage, movPageSize, filterFecha, filterDescripcion, movFilterTipoDocumento, movFilterEstado, filterPeriodo]);
+  }, [activeTab]);
+
+  // Nueva función para buscar movimientos solo al presionar Buscar
+  const buscarMovimientos = () => {
+    setLoadingMov(true);
+    const params = new URLSearchParams({
+      page: movPage.toString(),
+      pageSize: movPageSize.toString(),
+      ...(filterFecha ? { fecha: filterFecha } : {}),
+      ...(filterDescripcion ? { descripcion: filterDescripcion } : {}),
+      ...(movFilterTipoDocumento ? { tipoDocumento: movFilterTipoDocumento } : {}),
+      ...(movFilterEstado ? { estado: movFilterEstado } : {}),
+      ...(filterPeriodo ? { periodo_id: filterPeriodo } : {}),
+    });
+    fetch(`/api/contabilidad/transacciones?${params}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Error al obtener movimientos");
+        return res.json();
+      })
+      .then((data) => {
+        setMovimientos(data.data);
+        setMovTotal(data.total);
+        setErrorMov("");
+      })
+      .catch((err) => setErrorMov(err.message))
+      .finally(() => setLoadingMov(false));
+  };
 
     return (
       <div className="flex h-screen">
@@ -275,7 +277,7 @@ const Contabilidad: React.FC = () => {
                 <option value="borrador">Borrador</option>
                 <option value="contabilizado">Contabilizado</option>
               </select>
-              <button className="bg-primary text-primary-foreground px-4 py-2 rounded" onClick={() => { setMovPage(1); }}>Buscar</button>
+              <button className="bg-primary text-primary-foreground px-4 py-2 rounded" onClick={() => { setMovPage(1); buscarMovimientos(); }}>Buscar</button>
             </div>
             {loadingMov ? (
               <div className="text-gray-500">Cargando movimientos...</div>
@@ -283,13 +285,23 @@ const Contabilidad: React.FC = () => {
               <div className="text-red-500">{errorMov}</div>
             ) : movimientos.length === 0 ? (
               <div className="text-center text-gray-600 bg-yellow-50 border border-yellow-200 rounded p-4 my-4">
-                No se encontraron transacciones para los filtros seleccionados.
-                <br />
-                {filterPeriodo && (
-                  <span>Para el periodo seleccionado no existen transacciones en la base de datos.</span>
-                )}
-                {!filterPeriodo && filterFecha && (
-                  <span>No existen transacciones para la fecha seleccionada.</span>
+                {movFilterTipoDocumento ? (
+                  <>
+                    No se encontraron transacciones para el tipo de documento seleccionado.
+                    <br />
+                    <span>Prueba seleccionando otro tipo de documento o ajusta los filtros.</span>
+                  </>
+                ) : (
+                  <>
+                    No se encontraron transacciones para los filtros seleccionados.
+                    <br />
+                    {filterPeriodo && (
+                      <span>Para el periodo seleccionado no existen transacciones en la base de datos.</span>
+                    )}
+                    {!filterPeriodo && filterFecha && (
+                      <span>No existen transacciones para la fecha seleccionada.</span>
+                    )}
+                  </>
                 )}
               </div>
             ) : (
