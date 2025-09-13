@@ -7,6 +7,7 @@ import { Tercero } from "@/components/contabilidad/BuscadorTerceros";
 import { Edit, Trash2, List, CalendarDays, Percent, BarChart2, BookOpen, Settings } from "lucide-react";
 import TiposTransaccionConfig from "@/components/contabilidad/TiposTransaccionConfig";
 import PrefijosConfig from "@/components/contabilidad/PrefijosConfig";
+import CentrosCostoConfig from "@/components/ui/CentrosCostoConfig";
 import PeriodosPage from "./periodos";
 import Modal from "@/components/ui/modal";
 import { ModalCrearCuentaPUC } from "@/components/contabilidad/ModalCrearCuentaPUC";
@@ -37,6 +38,8 @@ const tabs = [
 ];
 
 const Contabilidad: React.FC = () => {
+  // Estado para tabs de configuración
+  const [configTab, setConfigTab] = useState('tipos');
   // PUC
   const [activeTab, setActiveTab] = useState(tabs[0].key);
   const [puc, setPuc] = useState<PlanCuenta[]>([]);
@@ -530,8 +533,14 @@ const Contabilidad: React.FC = () => {
         {activeTab === "config" && (
           <section>
             <h2 className="text-xl font-bold mb-2">Configuración</h2>
-            <TiposTransaccionConfig />
-            <PrefijosConfig />
+            <div className="mb-6 flex gap-4 border-b pb-2">
+              <button className={`px-4 py-2 rounded-t font-semibold ${configTab === 'tipos' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`} onClick={() => setConfigTab('tipos')}>Tipos de Transacción</button>
+              <button className={`px-4 py-2 rounded-t font-semibold ${configTab === 'prefijos' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`} onClick={() => setConfigTab('prefijos')}>Prefijos</button>
+              <button className={`px-4 py-2 rounded-t font-semibold ${configTab === 'centros' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`} onClick={() => setConfigTab('centros')}>Centros de Costo</button>
+            </div>
+            {configTab === 'tipos' && <TiposTransaccionConfig />}
+            {configTab === 'prefijos' && <PrefijosConfig />}
+            {configTab === 'centros' && <CentrosCostoConfig />}
           </section>
         )}
         {/* ModalTransaccion para crear transacción contable */}

@@ -5,6 +5,7 @@ import { TopNavigation } from "@/components/layout/top-navigation";
 import { useState } from "react";
 import { Building, Users, ShieldCheck } from "lucide-react";
 
+
 const tabs = [
   { label: "Empresa", key: "empresa", icon: Building },
   { label: "Usuarios y Perfiles", key: "usuarios", icon: Users },
@@ -42,16 +43,16 @@ export default function ConfiguracionPage() {
           )}
           {activeTab === "usuarios" && (
             <section>
-            <h2 className="text-xl font-bold mb-2">Gestión de Usuarios y Perfiles</h2>
-            <p>Aquí irá la gestión de usuarios y perfiles.</p>
-          </section>
-        )}
-        {activeTab === "auditoria" && (
-          <section>
-            <h2 className="text-xl font-bold mb-2">Auditoría de Usuarios</h2>
-            <p>Aquí irá la auditoría de usuarios.</p>
-          </section>
-        )}
+              <h2 className="text-xl font-bold mb-2">Gestión de Usuarios y Perfiles</h2>
+              <p>Aquí irá la gestión de usuarios y perfiles.</p>
+            </section>
+          )}
+          {activeTab === "auditoria" && (
+            <section>
+              <h2 className="text-xl font-bold mb-2">Auditoría de Usuarios</h2>
+              <p>Aquí irá la auditoría de usuarios.</p>
+            </section>
+          )}
         </main>
       </div>
     </div>

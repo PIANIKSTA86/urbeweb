@@ -33,6 +33,16 @@ const loginSchema = z.object({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Rutas para asociación cuentas-exógena
+  const planCuentasExogenaRoutes = (await import('./planCuentasExogenaRoutes.js')).default || (await import('./planCuentasExogenaRoutes.js'));
+  app.use('/api/contabilidad/cuentas-exogena', planCuentasExogenaRoutes);
+  // Rutas para conceptos exógena
+  const conceptosExogenaRoutes = (await import('./conceptosExogenaRoutes.js')).default || (await import('./conceptosExogenaRoutes.js'));
+  app.use('/api/contabilidad/conceptos-exogena', conceptosExogenaRoutes);
+
+  // Rutas para centros de costo
+  const centrosCostoRoutes = (await import('./centrosCostoRoutes.js')).default || (await import('./centrosCostoRoutes.js'));
+  app.use('/api/contabilidad/centros-costo', centrosCostoRoutes);
   
   // Registrar storage en app para acceso desde controladores
   app.set('storage', storage);
@@ -48,6 +58,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/contabilidad', tiposTransaccionRoutes);
   const prefijosRoutes = (await import('./prefijosRoutes.js')).default;
   app.use('/api/contabilidad', prefijosRoutes);
+
+  // Rutas para partidas presupuestales
+    const partidasPresupuestalesRoutes = (await import('./partidasPresupuestalesRoutes.js')).default || (await import('./partidasPresupuestalesRoutes.js'));
+  app.use('/api/contabilidad/partidas-presupuestales', partidasPresupuestalesRoutes);
   
   // Endpoint para iniciar sesión
   app.post("/api/auth/login", async (req, res) => {

@@ -7,7 +7,7 @@ export async function createComprobante(req, res) {
   console.log('DEBUG inicio createComprobante', req.body);
   try {
 
-  let { numero, tipo, fecha, descripcion, usuario_id, movimientos, estado, periodo_id } = req.body;
+  let { numero, tipo, fecha, descripcion, usuario_id, movimientos, estado, periodo_id, centro_costo_id, partida_presupuestal_id, conciliado, fecha_conciliacion } = req.body;
     // Si fecha es string, convertir a Date
     if (typeof fecha === 'string') {
       fecha = new Date(fecha);
@@ -60,7 +60,11 @@ export async function createComprobante(req, res) {
         descripcion, 
         usuario_id, 
         estado: estado || 'borrador',
-        periodo_id: periodo_id || null
+        periodo_id: periodo_id || null,
+        centro_costo_id: centro_costo_id || null,
+        partida_presupuestal_id: partida_presupuestal_id || null,
+        conciliado: conciliado || 0,
+        fecha_conciliacion: fecha_conciliacion || null
       });
   console.log('DEBUG despues de insert movimientosContables', result);
       let movimiento_id = undefined;

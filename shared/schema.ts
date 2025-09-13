@@ -1,3 +1,42 @@
+// --- NUEVAS TABLAS PARA CENTROS DE COSTO, PRESUPUESTOS Y EXÓGENA ---
+export const centrosCosto = mysqlTable("centros_costo", {
+  id: int("id").primaryKey().autoincrement().notNull(),
+  nombre: varchar("nombre", { length: 100 }).notNull(),
+  descripcion: text("descripcion"),
+  estado: tinyint("estado").default(1),
+  created_at: datetime("created_at").default(sql`CURRENT_TIMESTAMP`),
+  updated_at: datetime("updated_at").default(sql`CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`)
+});
+
+export const partidasPresupuestales = mysqlTable("partidas_presupuestales", {
+  id: int("id").primaryKey().autoincrement().notNull(),
+  nombre: varchar("nombre", { length: 100 }).notNull(),
+  tipo: varchar("tipo", { length: 50 }),
+  monto_aprobado: decimal("monto_aprobado", { precision: 18, scale: 2 }).default("0"),
+  saldo: decimal("saldo", { precision: 18, scale: 2 }).default("0"),
+  estado: tinyint("estado").default(1),
+  created_at: datetime("created_at").default(sql`CURRENT_TIMESTAMP`),
+  updated_at: datetime("updated_at").default(sql`CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`)
+});
+
+export const conceptosExogena = mysqlTable("conceptos_exogena", {
+  id: int("id").primaryKey().autoincrement().notNull(),
+  codigo: varchar("codigo", { length: 20 }).notNull(),
+  descripcion: varchar("descripcion", { length: 255 }).notNull(),
+  formato: varchar("formato", { length: 50 }),
+  tipo: varchar("tipo", { length: 50 }),
+  estado: tinyint("estado").default(1),
+  created_at: datetime("created_at").default(sql`CURRENT_TIMESTAMP`),
+  updated_at: datetime("updated_at").default(sql`CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`)
+});
+
+export const planCuentasExogena = mysqlTable("plan_cuentas_exogena", {
+  id: int("id").primaryKey().autoincrement().notNull(),
+  cuenta_id: int("cuenta_id").notNull(),
+  exogena_id: int("exogena_id").notNull(),
+  formato: varchar("formato", { length: 50 }),
+  observaciones: text("observaciones"),
+});
 // Tabla movimiento_detalle
 export const movimientoDetalle = mysqlTable("movimiento_detalle", {
   id: int("id").primaryKey().autoincrement().notNull(),
@@ -7,6 +46,7 @@ export const movimientoDetalle = mysqlTable("movimiento_detalle", {
   descripcion: text("descripcion"),
   debito: decimal("debito", { precision: 18, scale: 2 }).default("0.00"),
   credito: decimal("credito", { precision: 18, scale: 2 }).default("0.00"),
+  valor_base: decimal("valor_base", { precision: 18, scale: 2 }).default("0"),
   created_at: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
   updated_at: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`),
 });
@@ -114,6 +154,10 @@ export const planCuentas = mysqlTable("plan_cuentas", {
   estado: tinyint("estado").default(1),
   es_debito: tinyint("es_debito"),
   registra_tercero: tinyint("registra_tercero").default(0),
+  es_presupuestal: tinyint("es_presupuestal").default(0),
+  es_exogena: tinyint("es_exogena").default(0),
+  requiere_tercero: tinyint("requiere_tercero").default(0),
+  requiere_centro_costo: tinyint("requiere_centro_costo").default(0),
   fecha_creacion: datetime("fecha_creacion").default(sql`CURRENT_TIMESTAMP`),
   updated_at: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`)
 });
@@ -141,6 +185,10 @@ export const movimientosContables = mysqlTable("movimientos_contables", {
   descripcion: text("descripcion"),
   estado: mysqlEnum("estado", ['activo', 'anulado', 'registrado']).notNull().default('registrado'),
   usuario_id: int("usuario_id").notNull(),
+  centro_costo_id: int("centro_costo_id"),
+  partida_presupuestal_id: int("partida_presupuestal_id"),
+  conciliado: tinyint("conciliado").default(0),
+  fecha_conciliacion: datetime("fecha_conciliacion"),
   created_at: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`),
   updated_at: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`),
 });

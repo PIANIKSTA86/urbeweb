@@ -23,8 +23,29 @@ router.get('/comprobantes/numero/:numero', async (req, res) => {
 	   }
 });
 
+
 // Endpoint para fechas únicas de movimientos contables
 router.get('/transacciones/fechas', transaccionesController.getFechasMovimientos);
+
+// Endpoint para consultar movimientos contables con filtros avanzados
+router.get('/movimientos', async (req, res) => {
+	try {
+		const { centro_costo_id, partida_presupuestal_id, conciliado, fecha_conciliacion } = req.query;
+		let query = db.select().from(movimientosContables);
+		const where = [];
+		if (centro_costo_id) where.push(eq(movimientosContables.centro_costo_id, Number(centro_costo_id)));
+		if (partida_presupuestal_id) where.push(eq(movimientosContables.partida_presupuestal_id, Number(partida_presupuestal_id)));
+		if (conciliado !== undefined) where.push(eq(movimientosContables.conciliado, Number(conciliado)));
+		if (fecha_conciliacion) where.push(eq(movimientosContables.fecha_conciliacion, new Date(fecha_conciliacion)));
+		if (where.length > 0) {
+			query = query.where(where.length === 1 ? where[0] : where.reduce((a, b) => a.and(b)));
+		}
+		const movimientos = await query;
+		res.json(movimientos);
+	} catch (err) {
+		res.status(500).json({ error: 'Error al consultar movimientos', detalles: err.message });
+	}
+});
 
 // Endpoint para crear comprobante contable con movimientos
 router.post('/comprobantes', contabilidadController.createComprobante);
