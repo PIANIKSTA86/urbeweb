@@ -62,9 +62,9 @@ const Contabilidad: React.FC = () => {
   const [movPage, setMovPage] = useState(1);
   const [movPageSize, setMovPageSize] = useState(10);
   const [movTotal, setMovTotal] = useState(0);
-  const [filterFecha, setFilterFecha] = useState("");
+  const [filterFechaInicio, setFilterFechaInicio] = useState("");
+  const [filterFechaFin, setFilterFechaFin] = useState("");
   const [fechasDisponibles, setFechasDisponibles] = useState<string[]>([]);
-  const [filterDescripcion, setFilterDescripcion] = useState("");
   const [movFilterTipoDocumento, setMovFilterTipoDocumento] = useState("");
   const [tiposDocumento, setTiposDocumento] = useState<any[]>([]);
   const [movFilterEstado, setMovFilterEstado] = useState("");
@@ -153,8 +153,8 @@ const Contabilidad: React.FC = () => {
 
   // Cuando cambia la fecha, seleccionar el periodo correspondiente
   useEffect(() => {
-    if (filterFecha && periodos.length > 0) {
-      const fecha = new Date(filterFecha);
+    if (filterFechaInicio && periodos.length > 0) {
+      const fecha = new Date(filterFechaInicio);
       const periodoEncontrado = periodos.find((p: any) => {
         const inicio = new Date(p.fechaInicio || p.fecha_inicio);
         const cierre = new Date(p.fechaCierre || p.fecha_cierre);
@@ -164,7 +164,7 @@ const Contabilidad: React.FC = () => {
         setFilterPeriodo(periodoEncontrado.id);
       }
     }
-  }, [filterFecha, periodos]);
+  }, [filterFechaInicio, periodos]);
 
   useEffect(() => {
     if (activeTab === "puc") {
@@ -189,8 +189,8 @@ const Contabilidad: React.FC = () => {
     const params = new URLSearchParams({
       page: movPage.toString(),
       pageSize: movPageSize.toString(),
-      ...(filterFecha ? { fecha: filterFecha } : {}),
-      ...(filterDescripcion ? { descripcion: filterDescripcion } : {}),
+  ...(filterFechaInicio ? { fechaInicio: filterFechaInicio } : {}),
+  ...(filterFechaFin ? { fechaFin: filterFechaFin } : {}),
       ...(movFilterTipoDocumento ? { tipoDocumento: movFilterTipoDocumento } : {}),
       ...(movFilterEstado ? { estado: movFilterEstado } : {}),
       ...(filterPeriodo ? { periodo_id: filterPeriodo } : {}),
@@ -232,51 +232,74 @@ const Contabilidad: React.FC = () => {
             <h2 className="text-xl font-bold mb-2">Movimientos</h2>
             <button className="bg-green-600 text-white px-4 py-2 rounded mb-4 hover:bg-green-700 transition" onClick={handleCreateTrans}>Crear Transacción</button>
             <div className="mb-4 flex gap-2 items-center">
-              {/* Selector de fecha con calendario */}
-              <input
-                type="date"
-                value={filterFecha}
-                onChange={e => { setFilterFecha(e.target.value); setMovPage(1); }}
-                className="border p-2 rounded min-w-[160px]"
-                placeholder="Selecciona fecha"
-                max={fechasDisponibles.length > 0 ? fechasDisponibles[fechasDisponibles.length - 1] : undefined}
-                min={fechasDisponibles.length > 0 ? fechasDisponibles[0] : undefined}
-              />
-              {/* Filtro por descripción */}
-              <input value={filterDescripcion} onChange={e => { setFilterDescripcion(e.target.value); setMovPage(1); }} placeholder="Filtrar por descripción" className="border p-2 rounded" />
-              {/* Filtro por periodo contable */}
-              <select value={filterPeriodo} onChange={e => { setFilterPeriodo(e.target.value); setMovPage(1); }} className="border p-2 rounded min-w-[160px]">
-                <option value="">Todos los periodos</option>
-                {periodos.map((p: any) => {
-                  const mes = String(p.mes).padStart(2, '0');
-                  const anio = p.anio || p.ano;
-                  let tipo = '';
-                  if ((p.tipo || '').toLowerCase().includes('cierre') || (p.estado || '').toLowerCase().includes('cierre')) {
-                    tipo = ' (Cierre)';
-                  } else if ((p.tipo || '').toLowerCase().includes('ajuste')) {
-                    tipo = ' (Ajuste)';
-                  }
-                  return (
-                    <option key={p.id} value={p.id}>
-                      {anio}-{mes}{tipo}
-                    </option>
-                  );
-                })}
-              </select>
-              {/* Filtro por tipo de documento dinámico */}
-              <select value={movFilterTipoDocumento} onChange={e => { setMovFilterTipoDocumento(e.target.value); setMovPage(1); }} className="border p-2 rounded min-w-[160px]">
-                <option value="">Tipo de documento</option>
-                {tiposDocumento.map((t: any) => (
-                  <option key={t.id} value={t.nombre}>{t.nombre}</option>
-                ))}
-              </select>
-              {/* Filtro por estado fijo */}
-              <select value={movFilterEstado} onChange={e => { setMovFilterEstado(e.target.value); setMovPage(1); }} className="border p-2 rounded min-w-[160px]">
-                <option value="">Estado</option>
-                <option value="anulado">Anulado</option>
-                <option value="borrador">Borrador</option>
-                <option value="contabilizado">Contabilizado</option>
-              </select>
+              {/* Selector de rango de fechas con etiquetas */}
+              <label className="flex flex-col text-xs font-semibold text-gray-700">
+                Fecha inicio
+                <input
+                  type="date"
+                  value={filterFechaInicio}
+                  onChange={e => { setFilterFechaInicio(e.target.value); setMovPage(1); }}
+                  className="border p-2 rounded min-w-[140px]"
+                  placeholder="Fecha inicio"
+                  max={filterFechaFin || undefined}
+                  min={fechasDisponibles.length > 0 ? fechasDisponibles[0] : undefined}
+                />
+              </label>
+              <span className="mx-1 self-end pb-2">a</span>
+              <label className="flex flex-col text-xs font-semibold text-gray-700">
+                Fecha fin
+                <input
+                  type="date"
+                  value={filterFechaFin}
+                  onChange={e => { setFilterFechaFin(e.target.value); setMovPage(1); }}
+                  className="border p-2 rounded min-w-[140px]"
+                  placeholder="Fecha fin"
+                  min={filterFechaInicio || (fechasDisponibles.length > 0 ? fechasDisponibles[0] : undefined)}
+                  max={fechasDisponibles.length > 0 ? fechasDisponibles[fechasDisponibles.length - 1] : undefined}
+                />
+              </label>
+              {/* Filtro por periodo contable con etiqueta */}
+              <label className="flex flex-col text-xs font-semibold text-gray-700">
+                Periodo contable
+                <select value={filterPeriodo} onChange={e => { setFilterPeriodo(e.target.value); setMovPage(1); }} className="border p-2 rounded min-w-[160px]">
+                  <option value="">Todos los periodos</option>
+                  {periodos.map((p: any) => {
+                    const mes = String(p.mes).padStart(2, '0');
+                    const anio = p.anio || p.ano;
+                    let tipo = '';
+                    if ((p.tipo || '').toLowerCase().includes('cierre') || (p.estado || '').toLowerCase().includes('cierre')) {
+                      tipo = ' (Cierre)';
+                    } else if ((p.tipo || '').toLowerCase().includes('ajuste')) {
+                      tipo = ' (Ajuste)';
+                    }
+                    return (
+                      <option key={p.id} value={p.id}>
+                        {anio}-{mes}{tipo}
+                      </option>
+                    );
+                  })}
+                </select>
+              </label>
+              {/* Filtro por tipo de documento dinámico con etiqueta */}
+              <label className="flex flex-col text-xs font-semibold text-gray-700">
+                Tipo de documento
+                <select value={movFilterTipoDocumento} onChange={e => { setMovFilterTipoDocumento(e.target.value); setMovPage(1); }} className="border p-2 rounded min-w-[160px]">
+                  <option value="">Tipo de documento</option>
+                  {tiposDocumento.map((t: any) => (
+                    <option key={t.id} value={t.nombre}>{t.nombre}</option>
+                  ))}
+                </select>
+              </label>
+              {/* Filtro por estado fijo con etiqueta */}
+              <label className="flex flex-col text-xs font-semibold text-gray-700">
+                Estado
+                <select value={movFilterEstado} onChange={e => { setMovFilterEstado(e.target.value); setMovPage(1); }} className="border p-2 rounded min-w-[160px]">
+                  <option value="">Estado</option>
+                  <option value="anulado">Anulado</option>
+                  <option value="borrador">Borrador</option>
+                  <option value="contabilizado">Contabilizado</option>
+                </select>
+              </label>
               <button className="bg-primary text-primary-foreground px-4 py-2 rounded" onClick={() => { setMovPage(1); buscarMovimientos(); }}>Buscar</button>
             </div>
             {loadingMov ? (
@@ -298,8 +321,8 @@ const Contabilidad: React.FC = () => {
                     {filterPeriodo && (
                       <span>Para el periodo seleccionado no existen transacciones en la base de datos.</span>
                     )}
-                    {!filterPeriodo && filterFecha && (
-                      <span>No existen transacciones para la fecha seleccionada.</span>
+                    {!filterPeriodo && (filterFechaInicio || filterFechaFin) && (
+                      <span>No existen transacciones para el rango de fechas seleccionado.</span>
                     )}
                   </>
                 )}

@@ -56,11 +56,30 @@ import { eq, and, lte, gte } from 'drizzle-orm';
 // Obtener todas las transacciones
 export async function getTransacciones(req, res) {
   try {
-    const { page = 1, pageSize = 20, fecha, descripcion, estado, periodo_id, tipoDocumento } = req.query;
-    let whereClause = [];
-    // Filter by fecha
+  const { page = 1, pageSize = 20, fecha, fechaInicio, fechaFin, descripcion, estado, periodo_id, tipoDocumento } = req.query;
+  let whereClause = [];
+    // Filtro por fecha exacta
     if (fecha) {
       whereClause.push(eq(movimientosContables.fecha, fecha));
+    }
+    // Filtro por rango de fechas (convertir a Date si es string)
+    const parseFecha = (f) => {
+      if (!f) return undefined;
+      if (f instanceof Date) return f;
+      // Si viene como 'YYYY-MM-DD', crear Date en zona local
+      if (/^\d{4}-\d{2}-\d{2}$/.test(f)) {
+        return new Date(f + 'T00:00:00');
+      }
+      return new Date(f);
+    };
+    const fechaInicioDate = parseFecha(fechaInicio);
+    const fechaFinDate = parseFecha(fechaFin);
+    if (fechaInicioDate && fechaFinDate) {
+      whereClause.push(and(gte(movimientosContables.fecha, fechaInicioDate), lte(movimientosContables.fecha, fechaFinDate)));
+    } else if (fechaInicioDate) {
+      whereClause.push(gte(movimientosContables.fecha, fechaInicioDate));
+    } else if (fechaFinDate) {
+      whereClause.push(lte(movimientosContables.fecha, fechaFinDate));
     }
     // Filter by descripcion
     if (descripcion) {
