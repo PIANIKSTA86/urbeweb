@@ -79,6 +79,7 @@ export const movimientoDetalle = mysqlTable("movimiento_detalle", {
   movimiento_id: int("movimiento_id").notNull(),
   cuenta_id: int("cuenta_id").notNull(),
   tercero_id: int("tercero_id"),
+  documento_cruce: varchar("documento_cruce", { length: 50 }),
   descripcion: text("descripcion"),
   debito: decimal("debito", { precision: 18, scale: 2 }).default("0.00"),
   credito: decimal("credito", { precision: 18, scale: 2 }).default("0.00"),
