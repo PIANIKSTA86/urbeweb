@@ -1,66 +1,70 @@
 import express from 'express';
-import * as db from './db.js';
+import { db } from './db.ts';
+import { partidasPresupuestales } from '../shared/schema.ts';
+import { eq } from 'drizzle-orm';
+
 const router = express.Router();
 
 // Obtener todas las partidas presupuestales
-router.get('/', async (req, res) => {
+router.get('/', async (_req, res) => {
   try {
-    const partidas = await db.partidas_presupuestales.findMany();
-    res.json(partidas);
-  } catch (error) {
-    res.status(500).json({ error: 'Error al obtener partidas presupuestales' });
+    const result = await db.select().from(partidasPresupuestales);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: 'Error al obtener partidas presupuestales', detalles: err.message });
   }
 });
 
 // Obtener una partida presupuestal por ID
 router.get('/:id', async (req, res) => {
   try {
-    const partida = await db.partidas_presupuestales.findFirst({
-      where: { id: Number(req.params.id) }
-    });
-    if (!partida) return res.status(404).json({ error: 'No encontrada' });
-    res.json(partida);
-  } catch (error) {
-    res.status(500).json({ error: 'Error al obtener la partida' });
+    const id = Number(req.params.id);
+    const result = await db.select().from(partidasPresupuestales).where(eq(partidasPresupuestales.id, id));
+    if (result.length === 0) return res.status(404).json({ error: 'No encontrado' });
+    res.json(result[0]);
+  } catch (err) {
+    res.status(500).json({ error: 'Error al obtener partida presupuestal', detalles: err.message });
   }
 });
 
-// Crear una nueva partida presupuestal
+// Crear una partida presupuestal
 router.post('/', async (req, res) => {
   try {
-    const { nombre, tipo, monto_aprobado, saldo, estado } = req.body;
-    const nueva = await db.partidas_presupuestales.create({
-      data: { nombre, tipo, monto_aprobado, saldo, estado }
-    });
-    res.status(201).json(nueva);
-  } catch (error) {
-    res.status(500).json({ error: 'Error al crear partida' });
+    let { nombre, tipo, monto_aprobado, saldo, estado } = req.body;
+    if (estado === undefined || estado === null || estado === "") estado = 1;
+    if (saldo === undefined || saldo === null || saldo === "") saldo = monto_aprobado || 0;
+    const result = await db.insert(partidasPresupuestales).values({ nombre, tipo, monto_aprobado, saldo, estado });
+    const insertId = result.insertId || (result[0] && result[0].insertId);
+    res.status(201).json({ id: insertId, nombre, tipo, monto_aprobado, saldo, estado });
+  } catch (err) {
+    res.status(500).json({ error: 'Error al crear partida presupuestal', detalles: err.message });
   }
 });
 
 // Actualizar una partida presupuestal
 router.put('/:id', async (req, res) => {
   try {
+    const id = Number(req.params.id);
     const { nombre, tipo, monto_aprobado, saldo, estado } = req.body;
-    const actualizada = await db.partidas_presupuestales.update({
-      where: { id: Number(req.params.id) },
-      data: { nombre, tipo, monto_aprobado, saldo, estado }
-    });
-    res.json(actualizada);
-  } catch (error) {
-    res.status(500).json({ error: 'Error al actualizar partida' });
+    const result = await db.update(partidasPresupuestales)
+      .set({ nombre, tipo, monto_aprobado, saldo, estado })
+      .where(eq(partidasPresupuestales.id, id));
+    if (result.affectedRows === 0) return res.status(404).json({ error: 'No encontrado' });
+    res.json({ message: 'Partida presupuestal actualizada' });
+  } catch (err) {
+    res.status(500).json({ error: 'Error al actualizar partida presupuestal', detalles: err.message });
   }
 });
 
 // Eliminar una partida presupuestal
 router.delete('/:id', async (req, res) => {
   try {
-    await db.partidas_presupuestales.delete({
-      where: { id: Number(req.params.id) }
-    });
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ error: 'Error al eliminar partida' });
+    const id = Number(req.params.id);
+    const result = await db.delete(partidasPresupuestales).where(eq(partidasPresupuestales.id, id));
+    if (result.affectedRows === 0) return res.status(404).json({ error: 'No encontrado' });
+    res.json({ message: 'Partida presupuestal eliminada' });
+  } catch (err) {
+    res.status(500).json({ error: 'Error al eliminar partida presupuestal', detalles: err.message });
   }
 });
 

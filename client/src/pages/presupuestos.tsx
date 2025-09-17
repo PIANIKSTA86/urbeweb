@@ -3,15 +3,17 @@
 import { SidebarNew } from "@/components/layout/sidebar-new";
 import { TopNavigation } from "@/components/layout/top-navigation";
 import { useState } from "react";
-import { FileText, Settings } from "lucide-react";
+import { FileText, BarChart2, FileBarChart2 } from "lucide-react";
+import PartidasPresupuestalesConfig from "@/components/ui/PartidasPresupuestalesConfig";
 
 const tabs = [
-  { label: "Presupuestos", key: "gestion", icon: FileText },
-  { label: "Configuración", key: "config", icon: Settings },
+  { label: "Presupuestos", key: "presupuestos", icon: FileText },
+  { label: "Ejecución", key: "ejecucion", icon: BarChart2 },
+  { label: "Reportes", key: "reportes", icon: FileBarChart2 },
 ];
 
 export default function PresupuestosPage() {
-  const [activeTab, setActiveTab] = useState("gestion");
+  const [activeTab, setActiveTab] = useState("presupuestos");
   return (
     <div className="flex h-screen">
       <SidebarNew />
@@ -33,18 +35,24 @@ export default function PresupuestosPage() {
               );
             })}
           </div>
-          {activeTab === "gestion" && (
+          {activeTab === "presupuestos" && (
             <section>
               <h2 className="text-xl font-bold mb-2">Gestión de Presupuestos</h2>
-              <p>Aquí irá la gestión y control de presupuestos.</p>
+              <PartidasPresupuestalesConfig />
             </section>
           )}
-          {activeTab === "config" && (
+          {activeTab === "ejecucion" && (
             <section>
-              <h2 className="text-xl font-bold mb-2">Configuración de Presupuestos</h2>
-            <p>Aquí irá la configuración de presupuestos.</p>
-          </section>
-        )}
+              <h2 className="text-xl font-bold mb-2">Ejecución Presupuestal</h2>
+              <p>Aquí se mostrará la integración con movimientos contables, comparación real vs. presupuestado y reportes de desviaciones.</p>
+            </section>
+          )}
+          {activeTab === "reportes" && (
+            <section>
+              <h2 className="text-xl font-bold mb-2">Reportes de Presupuesto</h2>
+              <p>Aquí se mostrarán reportes imprimibles, ejecución comparada, cuotas de administración y proyección de caja.</p>
+            </section>
+          )}
         </main>
       </div>
     </div>

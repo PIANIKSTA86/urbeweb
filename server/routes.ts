@@ -33,12 +33,23 @@ const loginSchema = z.object({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Rutas independientes para presupuestos
+  const presupuestosRoutes = (await import('./presupuestosRoutes.js')).default;
+  app.use('/api/presupuestos', presupuestosRoutes);
+  const rubrosRoutes = (await import('./rubrosRoutes.js')).default;
+  app.use('/api/rubros', rubrosRoutes);
+  const simulacionesRoutes = (await import('./simulacionesRoutes.js')).default;
+  app.use('/api/simulaciones', simulacionesRoutes);
   // Rutas para asociación cuentas-exógena
   const planCuentasExogenaRoutes = (await import('./planCuentasExogenaRoutes.js')).default || (await import('./planCuentasExogenaRoutes.js'));
   app.use('/api/contabilidad/cuentas-exogena', planCuentasExogenaRoutes);
   // Rutas para conceptos exógena
   const conceptosExogenaRoutes = (await import('./conceptosExogenaRoutes.js')).default || (await import('./conceptosExogenaRoutes.js'));
   app.use('/api/contabilidad/conceptos-exogena', conceptosExogenaRoutes);
+
+  // Rutas para partidas presupuestales
+  const partidasPresupuestalesRoutes = (await import('./partidasPresupuestalesRoutes.js')).default || (await import('./partidasPresupuestalesRoutes.js'));
+  app.use('/api/contabilidad/partidas-presupuestales', partidasPresupuestalesRoutes);
 
   // Rutas para centros de costo
   const centrosCostoRoutes = (await import('./centrosCostoRoutes.js')).default || (await import('./centrosCostoRoutes.js'));
@@ -59,9 +70,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const prefijosRoutes = (await import('./prefijosRoutes.js')).default;
   app.use('/api/contabilidad', prefijosRoutes);
 
-  // Rutas para partidas presupuestales
-    const partidasPresupuestalesRoutes = (await import('./partidasPresupuestalesRoutes.js')).default || (await import('./partidasPresupuestalesRoutes.js'));
-  app.use('/api/contabilidad/partidas-presupuestales', partidasPresupuestalesRoutes);
+  // (Eliminado: declaración duplicada de partidasPresupuestalesRoutes)
   
   // Endpoint para iniciar sesión
   app.post("/api/auth/login", async (req, res) => {

@@ -1,4 +1,40 @@
+// Tabla de simulaciones presupuestales
+export const simulaciones = mysqlTable("simulaciones", {
+  id: int("id").primaryKey().autoincrement().notNull(),
+  presupuesto_id: int("presupuesto_id").notNull(),
+  nombre: varchar("nombre", { length: 100 }).notNull(),
+  descripcion: text("descripcion"),
+  monto_simulado: decimal("monto_simulado", { precision: 18, scale: 2 }).default("0"),
+  fecha: datetime("fecha").default(sql`CURRENT_TIMESTAMP`),
+  created_at: datetime("created_at").default(sql`CURRENT_TIMESTAMP`),
+  updated_at: datetime("updated_at").default(sql`CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`)
+});
+// Tabla de rubros presupuestales
+export const rubros = mysqlTable("rubros", {
+  id: int("id").primaryKey().autoincrement().notNull(),
+  presupuesto_id: int("presupuesto_id").notNull(),
+  nombre: varchar("nombre", { length: 100 }).notNull(),
+  descripcion: text("descripcion"),
+  monto_aprobado: decimal("monto_aprobado", { precision: 18, scale: 2 }).default("0"),
+  monto_ejecutado: decimal("monto_ejecutado", { precision: 18, scale: 2 }).default("0"),
+  estado: tinyint("estado").default(1),
+  created_at: datetime("created_at").default(sql`CURRENT_TIMESTAMP`),
+  updated_at: datetime("updated_at").default(sql`CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`)
+});
 // --- NUEVAS TABLAS PARA CENTROS DE COSTO, PRESUPUESTOS Y EXÓGENA ---
+
+// Tabla de presupuestos
+export const presupuestos = mysqlTable("presupuestos", {
+  id: int("id").primaryKey().autoincrement().notNull(),
+  nombre: varchar("nombre", { length: 100 }).notNull(),
+  descripcion: text("descripcion"),
+  estado: tinyint("estado").default(1),
+  fecha_inicio: datetime("fecha_inicio").notNull(),
+  fecha_fin: datetime("fecha_fin").notNull(),
+  monto_total: decimal("monto_total", { precision: 18, scale: 2 }).default("0"),
+  created_at: datetime("created_at").default(sql`CURRENT_TIMESTAMP`),
+  updated_at: datetime("updated_at").default(sql`CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`)
+});
 export const centrosCosto = mysqlTable("centros_costo", {
   id: int("id").primaryKey().autoincrement().notNull(),
   nombre: varchar("nombre", { length: 100 }).notNull(),
