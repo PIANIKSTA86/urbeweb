@@ -9,10 +9,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useEffect } from "react";
 
-function ModalCrearCuentaPUC({ isOpen, onClose, onCreated, puc }: ModalCrearCuentaPUCProps & { puc: any[] }) {
-  const { register, handleSubmit, reset, setValue, control, formState: { isSubmitting } } = useForm();
+interface ModalCrearCuentaPUCProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onCreated?: () => void;
+  puc: any[];
+  initialValues?: any;
+  isEdit?: boolean;
+}
+
+function ModalCrearCuentaPUC({ isOpen, onClose, onCreated, puc, initialValues, isEdit }: ModalCrearCuentaPUCProps) {
+  const { register, handleSubmit, reset, setValue, control, formState: { isSubmitting } } = useForm({ defaultValues: initialValues || {} });
   const { toast } = useToast();
-  const [padreCuenta, setPadreCuenta] = useState<any>(null);
+  const [padreCuenta, setPadreCuenta] = useState<any>(initialValues?.padre_codigo ? puc.find((c: any) => c.codigo === initialValues.padre_codigo) : null);
   const [errorCodigo, setErrorCodigo] = useState<string>("");
 
   const onSubmit = async (data: any) => {
@@ -21,9 +30,9 @@ function ModalCrearCuentaPUC({ isOpen, onClose, onCreated, puc }: ModalCrearCuen
     if (padreCuenta) {
       data.padre_codigo = padreCuenta.codigo;
     }
-    // Validación 1: que el código no exista
     const codigo = String(data.codigo).trim();
-    if (puc.some((c: any) => c.codigo === codigo)) {
+    // Validación solo si es creación
+    if (!isEdit && puc.some((c: any) => c.codigo === codigo)) {
       setErrorCodigo("El código ya existe en el plan de cuentas.");
       console.warn("[VALIDACIÓN] Código ya existe:", codigo);
       return;
@@ -66,8 +75,10 @@ function ModalCrearCuentaPUC({ isOpen, onClose, onCreated, puc }: ModalCrearCuen
     const payload = { ...data, tipo, nivel, registra_documento: data.registra_documento };
     console.log("[DEBUG] Enviando payload:", payload);
     try {
-      const res = await fetch('/api/contabilidad/puc', {
-        method: 'POST',
+      const url = isEdit && initialValues?.id ? `/api/contabilidad/puc/${initialValues.id}` : '/api/contabilidad/puc';
+      const method = isEdit ? 'PUT' : 'POST';
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
@@ -77,25 +88,34 @@ function ModalCrearCuentaPUC({ isOpen, onClose, onCreated, puc }: ModalCrearCuen
         reset();
         onClose();
         toast({
-          title: "Cuenta creada",
-          description: "La cuenta fue creada exitosamente.",
-          status: "success",
+          title: isEdit ? "Cuenta actualizada" : "Cuenta creada",
+          description: isEdit ? "La cuenta fue actualizada exitosamente." : "La cuenta fue creada exitosamente."
         });
       } else {
         const errorData = await res.json().catch(() => ({}));
-        const msg = errorData?.error || errorData?.mensaje || 'Error al crear la cuenta';
+        const msg = errorData?.error || errorData?.mensaje || (isEdit ? 'Error al actualizar la cuenta' : 'Error al crear la cuenta');
+        setErrorCodigo(msg);
         console.error("[ERROR API]:", errorData);
       }
     } catch (err) {
+      setErrorCodigo(isEdit ? 'Error al actualizar la cuenta' : 'Error al crear la cuenta');
       console.error("[ERROR RED]:", err);
     }
   };
+
+  // Prefill form when initialValues change (for edit)
+  useEffect(() => {
+    if (isEdit && initialValues) {
+      reset(initialValues);
+      setPadreCuenta(initialValues.padre_codigo ? puc.find((c: any) => c.codigo === initialValues.padre_codigo) : null);
+    }
+  }, [isEdit, initialValues, puc, reset]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Crear Nueva Cuenta PUC</DialogTitle>
+          <DialogTitle>{isEdit ? 'Editar Cuenta PUC' : 'Crear Nueva Cuenta PUC'}</DialogTitle>
         </DialogHeader>
         <form className="grid grid-cols-1 md:grid-cols-2 gap-4" onSubmit={handleSubmit(onSubmit)}>
           <div className="md:col-span-2">
@@ -117,7 +137,7 @@ function ModalCrearCuentaPUC({ isOpen, onClose, onCreated, puc }: ModalCrearCuen
           </div>
           <div>
             <label className="block font-medium mb-1">Código *</label>
-            <Input {...register('codigo', { required: true })} type="text" placeholder="Código" />
+            <Input {...register('codigo', { required: true })} type="text" placeholder="Código" disabled={isEdit} />
             {errorCodigo && <div className="text-red-500 text-xs mt-1">{errorCodigo}</div>}
           </div>
           <div className="md:col-span-2">
@@ -209,9 +229,9 @@ function ModalCrearCuentaPUC({ isOpen, onClose, onCreated, puc }: ModalCrearCuen
               type="submit"
               className="w-full"
               disabled={isSubmitting}
-              onClick={() => console.log('[DEBUG] Botón Crear cuenta clickeado')}
+              onClick={() => console.log('[DEBUG] Botón Crear/Editar cuenta clickeado')}
             >
-              {isSubmitting ? 'Creando...' : 'Crear cuenta'}
+              {isSubmitting ? (isEdit ? 'Guardando...' : 'Creando...') : (isEdit ? 'Guardar cambios' : 'Crear cuenta')}
             </Button>
           </div>
         </form>

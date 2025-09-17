@@ -46,11 +46,22 @@ const Contabilidad: React.FC = () => {
   const [puc, setPuc] = useState<PlanCuenta[]>([]);
   const [loadingPuc, setLoadingPuc] = useState(false);
   const [errorPuc, setErrorPuc] = useState("");
+  // Filtros aplicados
   const [filterCodigo, setFilterCodigo] = useState("");
   const [filterNombre, setFilterNombre] = useState("");
   const [filterTipo, setFilterTipo] = useState("");
   const [filterNivel, setFilterNivel] = useState("");
   const [filterEstado, setFilterEstado] = useState("");
+  // Inputs temporales
+  const [inputCodigo, setInputCodigo] = useState("");
+  const [inputNombre, setInputNombre] = useState("");
+  const [inputNivel, setInputNivel] = useState("");
+  // Sincronizar inputs temporales con filtros al cambiar de tab o limpiar
+  useEffect(() => {
+    setInputCodigo(filterCodigo);
+    setInputNombre(filterNombre);
+    setInputNivel(filterNivel);
+  }, [filterCodigo, filterNombre, filterNivel, activeTab]);
   const [editCuenta, setEditCuenta] = useState<PlanCuenta | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [deleteCuenta, setDeleteCuenta] = useState<PlanCuenta | null>(null);
@@ -501,8 +512,24 @@ const Contabilidad: React.FC = () => {
               <button className="bg-primary text-white px-4 py-2 rounded mb-4 hover:bg-blue-700 transition" onClick={() => setShowImportModal(true)}>Importar PUC</button>
             </div>
             <div className="mb-4 flex gap-2 items-center">
-              <input value={filterCodigo} onChange={e => setFilterCodigo(e.target.value)} placeholder="Filtrar por código" className="border p-2 rounded" />
-              <input value={filterNombre} onChange={e => setFilterNombre(e.target.value)} placeholder="Filtrar por nombre" className="border p-2 rounded" />
+              <input
+                value={inputCodigo}
+                onChange={e => setInputCodigo(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' || e.key === 'Tab') setFilterCodigo(inputCodigo);
+                }}
+                placeholder="Filtrar por código"
+                className="border p-2 rounded"
+              />
+              <input
+                value={inputNombre}
+                onChange={e => setInputNombre(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' || e.key === 'Tab') setFilterNombre(inputNombre);
+                }}
+                placeholder="Filtrar por nombre"
+                className="border p-2 rounded"
+              />
               <select value={filterTipo} onChange={e => setFilterTipo(e.target.value)} className="border p-2 rounded">
                 <option value="">Tipo</option>
                 <option value="activo">Activo</option>
@@ -512,7 +539,17 @@ const Contabilidad: React.FC = () => {
                 <option value="gasto">Gasto</option>
                 <option value="orden">Orden</option>
               </select>
-              <input value={filterNivel} onChange={e => setFilterNivel(e.target.value)} placeholder="Nivel" type="number" min="1" className="border p-2 rounded" />
+              <input
+                value={inputNivel}
+                onChange={e => setInputNivel(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' || e.key === 'Tab') setFilterNivel(inputNivel);
+                }}
+                placeholder="Nivel"
+                type="number"
+                min="1"
+                className="border p-2 rounded"
+              />
               <select value={filterEstado} onChange={e => setFilterEstado(e.target.value)} className="border p-2 rounded">
                 <option value="">Estado</option>
                 <option value="1">Activo</option>
@@ -553,6 +590,25 @@ const Contabilidad: React.FC = () => {
                     .finally(() => setLoadingPuc(false));
                 }}
                 puc={puc}
+              />
+            )}
+            {/* Modal editar cuenta */}
+            {showEditModal && editCuenta && (
+              <ModalCrearCuentaPUC
+                isOpen={showEditModal}
+                onClose={() => { setShowEditModal(false); setEditCuenta(null); }}
+                onCreated={() => {
+                  setLoadingPuc(true);
+                  fetch("/api/contabilidad/puc")
+                    .then((res) => res.json())
+                    .then((data) => setPuc(data))
+                    .finally(() => setLoadingPuc(false));
+                  setShowEditModal(false);
+                  setEditCuenta(null);
+                }}
+                puc={puc}
+                initialValues={editCuenta}
+                isEdit={true}
               />
             )}
             {/* Modal importar PUC */}
