@@ -5,7 +5,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { PUCTreeTable, CuentaNode } from "@/components/contabilidad/PUCTreeTable";
 import ModalTransaccion from "@/components/contabilidad/ModalTransaccion";
 import { Tercero } from "@/components/contabilidad/BuscadorTerceros";
-import { Edit, Trash2, List, CalendarDays, Percent, BarChart2, BookOpen, Settings } from "lucide-react";
+import { Edit, Trash2, List, CalendarDays, Percent, BookOpen, Settings } from "lucide-react";
 import TiposTransaccionConfig from "@/components/contabilidad/TiposTransaccionConfig";
 import PrefijosConfig from "@/components/contabilidad/PrefijosConfig";
 import CentrosCostoConfig from "@/components/ui/CentrosCostoConfig";
@@ -33,7 +33,6 @@ const tabs = [
   { label: "Movimientos", key: "movimientos", icon: List },
   { label: "Periodos", key: "periodos", icon: CalendarDays },
   { label: "Impuestos", key: "impuestos", icon: Percent },
-  { label: "Reportes", key: "reportes", icon: BarChart2 },
   { label: "PUC", key: "puc", icon: BookOpen },
   { label: "Configuración", key: "config", icon: Settings },
 ];
@@ -497,11 +496,6 @@ const Contabilidad: React.FC = () => {
         {activeTab === "impuestos" && (
           <section>
             {/* ...existing code for Impuestos... */}
-          </section>
-        )}
-        {activeTab === "reportes" && (
-          <section>
-            {/* ...existing code for Reportes... */}
           </section>
         )}
         {activeTab === "puc" && (
