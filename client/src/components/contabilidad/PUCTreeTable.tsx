@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from "react";
+import { Edit, Trash2 } from "lucide-react";
 
 export interface CuentaNode {
   id: number;
@@ -74,8 +75,12 @@ export const PUCTreeTable: React.FC<Props> = ({ data, expanded, onToggle, onEdit
               {node.registra_tercero === 1 && <span className="bg-purple-100 text-purple-800 px-2 rounded text-xs">Tercero</span>}
             </td>
             <td className="border px-2 py-1">
-              <button className="text-blue-600 mr-2" onClick={() => onEdit(node)}>Editar</button>
-              <button className="text-red-600" onClick={() => onDelete(node)}>Eliminar</button>
+              <button className="text-blue-600 mr-2" title="Editar" onClick={() => onEdit(node)}>
+                <Edit className="inline h-4 w-4" />
+              </button>
+              <button className="text-red-600" title="Eliminar" onClick={() => onDelete(node)}>
+                <Trash2 className="inline h-4 w-4" />
+              </button>
             </td>
           </tr>
           {hasChildren && isExpanded && renderRows(node.children!, level + 1, newVisited)}
