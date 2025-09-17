@@ -1,7 +1,8 @@
 // ...existing code...
 
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
+import { PUCTreeTable, CuentaNode } from "@/components/contabilidad/PUCTreeTable";
 import ModalTransaccion from "@/components/contabilidad/ModalTransaccion";
 import { Tercero } from "@/components/contabilidad/BuscadorTerceros";
 import { Edit, Trash2, List, CalendarDays, Percent, BarChart2, BookOpen, Settings } from "lucide-react";
@@ -54,6 +55,91 @@ const Contabilidad: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [deleteCuenta, setDeleteCuenta] = useState<PlanCuenta | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  // Estado para árbol jerárquico
+  const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
+  const [searchTerm, setSearchTerm] = useState("");
+  // Para resaltar nodos encontrados
+  const [highlight, setHighlight] = useState<Set<string>>(new Set());
+  // Función para transformar array plano en árbol
+  const buildCuentaTree = (cuentas: PlanCuenta[]): CuentaNode[] => {
+    const map = new Map<string, CuentaNode>();
+    cuentas.forEach(c => {
+      map.set(c.codigo, { ...c, children: [] });
+    });
+    // Solo nivel 1 como raíz
+    const roots: CuentaNode[] = cuentas
+      .filter(c => c.nivel === 1)
+      .map(c => map.get(c.codigo)!)
+      .sort((a, b) => parseInt(a.codigo) - parseInt(b.codigo));
+    // Asignar hijos
+    map.forEach((cuenta, codigo) => {
+      if (cuenta.padre_codigo && map.has(cuenta.padre_codigo)) {
+        map.get(cuenta.padre_codigo)!.children!.push(cuenta);
+      }
+    });
+    // Ordenar hijos por código numérico
+    const sortChildren = (nodos: CuentaNode[], visited = new Set<string>()) => {
+      nodos.sort((a, b) => parseInt(a.codigo) - parseInt(b.codigo));
+      nodos.forEach(n => {
+        if (n.children && n.children.length > 0 && !visited.has(n.codigo)) {
+          visited.add(n.codigo);
+          sortChildren(n.children, visited);
+        }
+      });
+    };
+    sortChildren(roots);
+    return roots;
+  };
+
+  // Filtros combinables y búsqueda
+  const cuentasFiltradas = useMemo(() => {
+    return puc.filter((cuenta: any) =>
+      (!filterCodigo || cuenta.codigo.includes(filterCodigo)) &&
+      (!filterNombre || cuenta.nombre.toLowerCase().includes(filterNombre.toLowerCase())) &&
+      (!filterTipo || cuenta.tipo === filterTipo) &&
+      (!filterNivel || cuenta.nivel === parseInt(filterNivel)) &&
+      (!filterEstado || cuenta.estado === parseInt(filterEstado))
+    );
+  }, [puc, filterCodigo, filterNombre, filterTipo, filterNivel, filterEstado]);
+
+  // Búsqueda instantánea global (código/nombre)
+  useEffect(() => {
+    if (!searchTerm) {
+      setHighlight(new Set());
+      return;
+    }
+    const found = new Set<string>();
+    cuentasFiltradas.forEach(cuenta => {
+      if (
+        cuenta.codigo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        cuenta.nombre.toLowerCase().includes(searchTerm.toLowerCase())
+      ) {
+        found.add(cuenta.codigo);
+        // Expandir todos los padres
+        let padre = cuenta.padre_codigo;
+        while (padre) {
+          found.add(padre);
+          const p = cuentasFiltradas.find((c: any) => c.codigo === padre);
+          padre = p?.padre_codigo;
+        }
+      }
+    });
+    setHighlight(found);
+    setExpanded(prev => {
+      const newSet = new Set(prev);
+      found.forEach(cod => newSet.add(cod));
+      return newSet;
+    });
+  }, [searchTerm, cuentasFiltradas]);
+
+  // Persistencia de expansión (opcional: localStorage)
+  useEffect(() => {
+    const saved = localStorage.getItem("puc_expanded");
+    if (saved) setExpanded(new Set(JSON.parse(saved)));
+  }, []);
+  useEffect(() => {
+    localStorage.setItem("puc_expanded", JSON.stringify(Array.from(expanded)));
+  }, [expanded]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [terceroSeleccionado, setTerceroSeleccionado] = useState<Tercero | null>(null);
@@ -439,47 +525,19 @@ const Contabilidad: React.FC = () => {
               <div className="text-red-500">{errorPuc}</div>
             ) : (
               <div className="overflow-auto max-h-[400px]">
-                <table className="min-w-full border text-sm">
-                  <thead>
-                    <tr className="bg-gray-100">
-                      <th className="border px-2 py-1">Código</th>
-                      <th className="border px-2 py-1">Nombre</th>
-                      <th className="border px-2 py-1">Tipo</th>
-                      <th className="border px-2 py-1">Nivel</th>
-                      <th className="border px-2 py-1">Padre Código</th>
-                      <th className="border px-2 py-1">Descripción</th>
-                      <th className="border px-2 py-1">Estado</th>
-                      <th className="border px-2 py-1">Débito</th>
-                      <th className="border px-2 py-1">Registra Tercero</th>
-                      <th className="border px-2 py-1">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {puc.filter((cuenta: any) =>
-                      (!filterCodigo || cuenta.codigo.includes(filterCodigo)) &&
-                      (!filterNombre || cuenta.nombre.toLowerCase().includes(filterNombre.toLowerCase())) &&
-                      (!filterTipo || cuenta.tipo === filterTipo) &&
-                      (!filterNivel || cuenta.nivel === parseInt(filterNivel)) &&
-                      (!filterEstado || cuenta.estado === parseInt(filterEstado))
-                    ).map((cuenta: any) => (
-                      <tr key={cuenta.codigo}>
-                        <td className="border px-2 py-1">{cuenta.codigo}</td>
-                        <td className="border px-2 py-1">{cuenta.nombre}</td>
-                        <td className="border px-2 py-1">{cuenta.tipo}</td>
-                        <td className="border px-2 py-1">{cuenta.nivel}</td>
-                        <td className="border px-2 py-1">{cuenta.padre_codigo}</td>
-                        <td className="border px-2 py-1">{cuenta.descripcion}</td>
-                        <td className="border px-2 py-1">{cuenta.estado === 1 ? "Activo" : "Inactivo"}</td>
-                        <td className="border px-2 py-1">{cuenta.es_debito === 1 ? "Sí" : "No"}</td>
-                        <td className="border px-2 py-1">{cuenta.registra_tercero === 1 ? "Sí" : "No"}</td>
-                        <td className="border px-2 py-1">
-                          <button className="text-blue-600 mr-2" onClick={() => { setEditCuenta(cuenta); setShowEditModal(true); }}>Editar</button>
-                          <button className="text-red-600" onClick={() => { setDeleteCuenta(cuenta); setShowDeleteModal(true); }}>Eliminar</button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <PUCTreeTable
+                  data={buildCuentaTree(cuentasFiltradas)}
+                  expanded={expanded}
+                  onToggle={codigo => setExpanded(prev => {
+                    const newSet = new Set(prev);
+                    if (newSet.has(codigo)) newSet.delete(codigo); else newSet.add(codigo);
+                    return newSet;
+                  })}
+                  onEdit={cuenta => { setEditCuenta(cuenta); setShowEditModal(true); }}
+                  onDelete={cuenta => { setDeleteCuenta(cuenta); setShowDeleteModal(true); }}
+                  searchTerm={searchTerm}
+                  highlight={highlight}
+                />
               </div>
             )}
             {/* Modal crear cuenta (nuevo UX/UI) */}
