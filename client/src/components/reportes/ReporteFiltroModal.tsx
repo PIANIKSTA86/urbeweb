@@ -70,13 +70,27 @@ const ReporteFiltroModal: React.FC<Props> = ({ reporte, onClose }) => {
         <p className="mb-2 text-gray-700 text-sm">{reporte.descripcion}</p>
         {/* Filtros de reportes */}
         <form className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Selector tipo de reporte */}
+        {/* Tipo de reporte */}
         <div className="col-span-1">
           <label className="block font-medium mb-1 text-xs">Tipo de reporte</label>
           <select className="w-full border rounded px-2 py-1 text-sm">
             <option value="cuentas">Por cuentas</option>
             <option value="terceros">Por terceros</option>
             <option value="unidad">Por unidad</option>
+          </select>
+        </div>
+        {/* Nivel de cuentas */}
+        <div className="col-span-1">
+          <label className="block font-medium mb-1 text-xs">Nivel de cuentas</label>
+          <select className="w-full border rounded px-2 py-1 text-sm">
+            <option value="">Todos los niveles</option>
+            <option value="1">Nivel 1</option>
+            <option value="2">Nivel 2</option>
+            <option value="3">Nivel 3</option>
+            <option value="4">Nivel 4</option>
+            <option value="5">Nivel 5</option>
+            <option value="6">Nivel 6</option>
+            <option value="7">Nivel 7</option>
           </select>
         </div>
         {/* Selector cuentas contables */}
@@ -169,14 +183,12 @@ const ReporteFiltroModal: React.FC<Props> = ({ reporte, onClose }) => {
             </datalist>
           )}
         </div>
-        {/* Checks */}
-        <div className="col-span-1 flex items-center space-x-2">
+        {/* Checks agrupados */}
+        <div className="col-span-1 flex flex-col space-y-2">
           <label className="flex items-center text-xs">
             <input type="checkbox" className="mr-1" />
             Incluir código cuentas
           </label>
-        </div>
-        <div className="col-span-1 flex items-center space-x-2">
           <label className="flex items-center text-xs">
             <input type="checkbox" className="mr-1" />
             Incluir terceros
@@ -219,21 +231,25 @@ const ReporteFiltroModal: React.FC<Props> = ({ reporte, onClose }) => {
             </select>
           )}
           {periodo === "rango" && (
-            <div className="flex flex-col gap-2">
-              <label className="text-xs">Fecha inicial</label>
-              <input
-                type="date"
-                className="w-full border rounded px-2 py-1 text-sm"
-                value={fechaInicial}
-                onChange={e => setFechaInicial(e.target.value)}
-              />
-              <label className="text-xs">Fecha final</label>
-              <input
-                type="date"
-                className="w-full border rounded px-2 py-1 text-sm"
-                value={fechaFinal}
-                onChange={e => setFechaFinal(e.target.value)}
-              />
+            <div className="flex flex-row gap-2 items-end">
+              <div className="flex-1">
+                <label className="text-xs">Fecha inicial</label>
+                <input
+                  type="date"
+                  className="w-full border rounded px-2 py-1 text-sm"
+                  value={fechaInicial}
+                  onChange={e => setFechaInicial(e.target.value)}
+                />
+              </div>
+              <div className="flex-1">
+                <label className="text-xs">Fecha final</label>
+                <input
+                  type="date"
+                  className="w-full border rounded px-2 py-1 text-sm"
+                  value={fechaFinal}
+                  onChange={e => setFechaFinal(e.target.value)}
+                />
+              </div>
             </div>
           )}
         </div>
