@@ -25,7 +25,7 @@ const reportesData: CategoriaReportes[] = [
     reportes: [
       { key: "libro-diario", nombre: "Libro Diario", descripcion: "Registro cronológico de todas las transacciones." },
       { key: "libro-mayor", nombre: "Libro Mayor", descripcion: "Saldos y movimientos acumulados por cuenta." },
-      { key: "auxiliares-cuentas", nombre: "Auxiliares de Cuentas", descripcion: "Detalle de movimientos por cuenta y tercero." },
+      { key: "auxiliares-cuentas", nombre: "Libro Auxiliar", descripcion: "Detalle de movimientos por cuenta y/o tercero." },
       { key: "conciliacion-bancaria", nombre: "Conciliación Bancaria", descripcion: "Conciliación de movimientos bancarios." },
       { key: "comprobantes-contables", nombre: "Listado de Comprobantes Contables", descripcion: "Listado de todos los comprobantes generados." },
     ]
