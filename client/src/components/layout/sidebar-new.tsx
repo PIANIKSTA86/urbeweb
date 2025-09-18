@@ -13,6 +13,7 @@ const navigationItems = [
   { path: "/tesoreria", icon: DollarSign, label: "Tesorería", testId: "nav-tesoreria" },
   { path: "/nomina", icon: Briefcase, label: "Nómina", testId: "nav-nomina" },
   { path: "/presupuestos", icon: Calculator, label: "Presupuestos", testId: "nav-presupuestos" },
+  { path: "/reportes", icon: FileText, label: "Reportes", testId: "nav-reportes" },
   { path: "/exogena", icon: FileText, label: "Exógena", testId: "nav-exogena" },
   { path: "/gestion-ph", icon: Building, label: "Gestión PH", testId: "nav-gestion-ph" },
 
