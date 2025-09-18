@@ -17,6 +17,7 @@ import GestionPH from "@/pages/gestion-ph";
 import Configuracion from "@/pages/configuracion";
 import Exogena from "@/pages/exogena";
 import Presupuestos from "@/pages/presupuestos";
+import Reportes from "@/pages/reportes";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -42,6 +43,7 @@ function Router() {
           <Route path="/exogena" component={Exogena} />
           <Route path="/gestion-ph" component={GestionPH} />
           <Route path="/configuracion" component={Configuracion} />
+            <Route path="/reportes" component={Reportes} />
         </>
       )}
       <Route component={NotFound} />
