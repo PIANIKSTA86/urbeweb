@@ -1,3 +1,4 @@
+/* global window */
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { Edit, Trash2 } from "lucide-react";

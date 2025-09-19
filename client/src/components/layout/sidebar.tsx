@@ -1,3 +1,4 @@
+// ...existing code...
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
@@ -12,7 +13,6 @@ import {
   Calendar, 
   BarChart3,
   LogOut,
-  Menu,
   ChevronLeft,
   ChevronRight
 } from "lucide-react";

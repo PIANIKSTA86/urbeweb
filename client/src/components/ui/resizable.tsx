@@ -1,3 +1,4 @@
+/* global React */
 "use client"
 
 import { GripVertical } from "lucide-react"

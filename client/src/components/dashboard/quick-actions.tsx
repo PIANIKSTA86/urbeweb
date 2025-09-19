@@ -1,3 +1,4 @@
+/* global console */
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, UserPlus, Receipt, BarChart3 } from "lucide-react";

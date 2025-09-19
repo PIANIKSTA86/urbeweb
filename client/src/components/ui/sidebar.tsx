@@ -1,3 +1,4 @@
+/* global window, document */
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { VariantProps, cva } from "class-variance-authority"
@@ -62,7 +63,7 @@ const SidebarProvider = React.forwardRef<
   (
     {
       defaultOpen = true,
-      open: openProp,
+       // open: openProp,
       onOpenChange: setOpenProp,
       className,
       style,
@@ -90,7 +91,7 @@ const SidebarProvider = React.forwardRef<
         // This sets the cookie to keep the sidebar state.
         document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
       },
-      [setOpenProp, open]
+       [setOpenProp]
     )
 
     // Helper to toggle the sidebar.

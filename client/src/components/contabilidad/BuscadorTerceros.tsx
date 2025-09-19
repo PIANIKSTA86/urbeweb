@@ -1,3 +1,4 @@
+/* global setTimeout, document */
 import React, { useState, useRef } from "react";
 
 export interface Tercero {
@@ -47,6 +48,7 @@ export const BuscadorTerceros: React.FC<BuscadorTercerosProps> = (props) => {
     placeholder = "Buscar tercero por nombre o identificación",
     disabled = false
   } = props;
+  /* global fetch, localStorage */
   const [input, setInput] = useState(value ? `${value.numeroIdentificacion} - ${value.razonSocial}` : "");
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");

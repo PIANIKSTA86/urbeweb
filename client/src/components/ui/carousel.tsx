@@ -146,11 +146,11 @@ const Carousel = React.forwardRef<
     )
   }
 )
-Carousel.displayName = "Carousel"
+          api.scrollPrev()
 
 const CarouselContent = React.forwardRef<
   HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
+          api.scrollNext()
 >(({ className, ...props }, ref) => {
   const { carouselRef, orientation } = useCarousel()
 
@@ -179,7 +179,7 @@ const CarouselItem = React.forwardRef<
   return (
     <div
       ref={ref}
-      role="group"
+              api,
       aria-roledescription="slide"
       className={cn(
         "min-w-0 shrink-0 grow-0 basis-full",

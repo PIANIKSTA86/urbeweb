@@ -1,3 +1,4 @@
+/* global fetch, localStorage */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,7 +32,7 @@ export function UnidadesTable({ searchTerm, propietarioId, onEdit }: UnidadesTab
       params.append('limite', limit.toString());
       params.append('offset', (page * limit).toString());
       
-      const response = await fetch(`/api/unidades?${params.toString()}`, {
+          const response = await fetch(`/api/unidades?${params.toString()}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
         }

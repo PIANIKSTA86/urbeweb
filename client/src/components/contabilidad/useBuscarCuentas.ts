@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 
+/* global fetch */
 export interface Cuenta {
   id: number;
   codigo: string;

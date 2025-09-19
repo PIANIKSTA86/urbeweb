@@ -1,5 +1,6 @@
 import { useForm } from "react-hook-form";
 
+/* global fetch, alert */
 export function CrearCuentaForm({ onClose }: { onClose: () => void }) {
   const { register, handleSubmit, reset, formState: { isSubmitting } } = useForm();
   const onSubmit = async (data: any) => {

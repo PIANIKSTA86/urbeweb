@@ -1,3 +1,4 @@
+/* global fetch, localStorage */
 import React, { useState } from "react";
 import BalancePruebaModal from "./BalancePruebaModal";
 import { ReporteDef } from "./reportesData";
@@ -22,7 +23,7 @@ function useCuentasPUC(busqueda: string) {
         if (!res.ok) throw new Error("Error al consultar cuentas");
         const data = await res.json();
         if (!ignore) setCuentas(data.map((c: any) => ({ codigo: c.codigo, nombre: c.nombre })));
-      } catch (e) {
+      } catch {
         if (!ignore) setCuentas([]);
       } finally {
         if (!ignore) setLoading(false);
@@ -55,7 +56,7 @@ function useTerceros(busqueda: string) {
   // data puede ser { terceros: [...] } o array plano
   let lista = Array.isArray(data) ? data : (data.terceros || data.data || []);
   if (!ignore) setTerceros(lista.map((t: any) => ({ nit: t.nit || t.numeroIdentificacion || t.id, nombre: t.razonSocial || (t.primerNombre ? `${t.primerNombre} ${t.primerApellido || ''}`.trim() : t.numeroIdentificacion) })));
-      } catch (e) {
+      } catch {
         if (!ignore) setTerceros([]);
       } finally {
         if (!ignore) setLoading(false);
@@ -83,7 +84,7 @@ function useCentrosCosto(busqueda: string) {
         const data = await res.json();
         let lista = Array.isArray(data) ? data : (data.data || []);
         if (!ignore) setCentros(lista.map((c: any) => ({ codigo: c.codigo || c.id, nombre: c.nombre })));
-      } catch (e) {
+      } catch {
         if (!ignore) setCentros([]);
       } finally {
         if (!ignore) setLoading(false);

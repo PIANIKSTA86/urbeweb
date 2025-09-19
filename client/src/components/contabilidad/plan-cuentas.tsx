@@ -1,7 +1,8 @@
+/* global alert, window, React */
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, Folder, Edit, Trash2 } from "lucide-react";
+import { ChevronRight, Folder } from "lucide-react";
 import Modal from "@/components/ui/modal";
 import { useState } from "react";
 

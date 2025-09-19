@@ -1,3 +1,4 @@
+/* global setTimeout */
 import { useBuscarCuentas, Cuenta } from "./useBuscarCuentas";
 import React from "react";
 

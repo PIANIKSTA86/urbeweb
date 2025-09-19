@@ -1,3 +1,4 @@
+/* global fetch, localStorage, alert */
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 

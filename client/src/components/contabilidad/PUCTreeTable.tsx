@@ -1,4 +1,5 @@
-import React, { useState, useCallback } from "react";
+/* global alert */
+import React, { useCallback } from "react";
 import { Edit, Trash2 } from "lucide-react";
 
 export interface CuentaNode {
@@ -18,9 +19,6 @@ export interface CuentaNode {
 interface Props {
   data: CuentaNode[];
   expanded: Set<string>;
-  onToggle: (codigo: string) => void;
-  onEdit: (cuenta: CuentaNode) => void;
-  onDelete: (cuenta: CuentaNode) => void;
   searchTerm?: string;
   highlight?: Set<string>;
 }
@@ -89,6 +87,7 @@ export const PUCTreeTable: React.FC<Props> = ({ data, expanded, onToggle, onEdit
     });
   }, [expanded, onToggle, onEdit, onDelete, searchTerm, highlight]);
 
+    
   return (
     <table className="min-w-full border text-sm">
       <thead>

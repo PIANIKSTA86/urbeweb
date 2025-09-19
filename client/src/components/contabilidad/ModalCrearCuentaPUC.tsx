@@ -19,6 +19,7 @@ interface ModalCrearCuentaPUCProps {
 }
 
 function ModalCrearCuentaPUC({ isOpen, onClose, onCreated, puc, initialValues, isEdit }: ModalCrearCuentaPUCProps) {
+  /* global fetch, console */
   const { register, handleSubmit, reset, setValue, control, formState: { isSubmitting } } = useForm({ defaultValues: initialValues || {} });
   const { toast } = useToast();
   const [padreCuenta, setPadreCuenta] = useState<any>(initialValues?.padre_codigo ? puc.find((c: any) => c.codigo === initialValues.padre_codigo) : null);

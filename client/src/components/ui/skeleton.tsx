@@ -1,3 +1,4 @@
+/* global React */
 import { cn } from "@/lib/utils"
 
 function Skeleton({

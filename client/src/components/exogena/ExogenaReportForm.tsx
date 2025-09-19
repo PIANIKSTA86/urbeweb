@@ -1,3 +1,4 @@
+/* global setTimeout */
 // Adaptación inicial basada en ExogenaReportForm de atria pro
 import React, { useState } from 'react';
 

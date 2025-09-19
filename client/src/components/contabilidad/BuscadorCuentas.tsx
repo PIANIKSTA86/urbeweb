@@ -1,3 +1,4 @@
+/* global document, setTimeout */
 import React, { useState, useRef } from "react";
 import { useBuscarCuentas, Cuenta } from "./useBuscarCuentas";
 
@@ -57,16 +58,16 @@ export const BuscadorCuentas: React.FC<BuscadorCuentasProps> = (props) => {
           if (e.key === 'Enter') {
             // Si hay un ítem resaltado, selecciona normalmente
             if (open && data.length > 0 && highlighted >= 0 && highlighted < data.length) {
-              const cuenta = data[highlighted];
-              if (cuenta.nivel !== 5) {
-                setError("Solo se pueden seleccionar cuentas de nivel 5.");
-                return;
-              }
-              setInput(`${cuenta.codigo} - ${cuenta.nombre}`);
-              setOpen(false);
-              setError("");
-              onSelect(cuenta);
-              return;
+        const selectedCuenta = data[highlighted];
+        if (selectedCuenta.nivel !== 5) {
+          setError("Solo se pueden seleccionar cuentas de nivel 5.");
+          return;
+        }
+        setInput(`${selectedCuenta.codigo} - ${selectedCuenta.nombre}`);
+        setOpen(false);
+        setError("");
+        onSelect(selectedCuenta);
+        return;
             }
             // Si no hay coincidencia exacta y el input es código válido, dispara creación
             const codigoInput = input.trim();

@@ -1,3 +1,4 @@
+/* global setTimeout */
 // Adaptación inicial basada en ExogenaDashboard de atria pro
 import React, { useState, useEffect } from "react";
 // Aquí puedes importar hooks y servicios reales cuando estén disponibles
@@ -5,7 +6,6 @@ import React, { useState, useEffect } from "react";
 const ExogenaDashboard: React.FC = () => {
   // Estado simulado para ejemplo
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [formats, setFormats] = useState<any[]>([]);
   const [reports, setReports] = useState<any[]>([]);
 

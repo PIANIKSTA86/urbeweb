@@ -1,3 +1,4 @@
+/* global window */
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { Edit, Trash2, Plus } from "lucide-react";
@@ -16,7 +17,7 @@ export interface PartidaPresupuestal {
 
 export default function PartidasPresupuestalesConfig() {
   const [partidas, setPartidas] = useState<PartidaPresupuestal[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [setLoading] = useState<React.Dispatch<React.SetStateAction<boolean>>>(() => () => {});
   const [form, setForm] = useState<Partial<PartidaPresupuestal>>({});
   const [editId, setEditId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);

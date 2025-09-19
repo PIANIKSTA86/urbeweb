@@ -1,3 +1,4 @@
+/* global alert, window */
 import React, { useEffect, useState } from "react";
 import { Edit, Trash2 } from "lucide-react";
 import Modal from "../ui/modal";
@@ -14,6 +15,7 @@ export interface Prefijo {
 const PrefijosConfig: React.FC = () => {
   const [prefijos, setPrefijos] = useState<Prefijo[]>([]);
   const [tipos, setTipos] = useState<TipoTransaccion[]>([]);
+  
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showModal, setShowModal] = useState(false);

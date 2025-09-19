@@ -29,6 +29,7 @@ interface TipoTransaccion {
 // --- Componente principal ---
 function ModalTransaccion(props: any) {
   const { periodos = [] } = props;
+  /* global fetch, localStorage */
   // ...existing code...
 
   // Llama a handleGuardar con el estado actualmente seleccionado

@@ -2,6 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { Bell, Menu, User, LogOut, Settings, HelpCircle } from "lucide-react";
 import { useContext } from "react";
+/* global window */
 import { SidebarContext } from "./sidebarContext";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { useAuth, User as AuthUser } from "@/hooks/use-auth";
