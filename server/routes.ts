@@ -326,6 +326,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // =================
+  // RUTAS DE REPORTES CONTABLES
+  // =================
+  const reportesRoutes = (await import('./reportesRoutes.js')).default;
+  app.use('/api/reportes', reportesRoutes);
+
   // Crear servidor HTTP
   const httpServer = createServer(app);
 

@@ -12,44 +12,105 @@ export function getBalancePrueba(req, res) {
   // Filtros avanzados: tercero, cuenta, rango de fechas
   const terceroId = req.query.terceroId ? parseInt(req.query.terceroId) : null;
   const cuentaCodigo = req.query.cuentaCodigo || null;
-  const desde = req.query.desde ? new Date(req.query.desde) : null;
-  const hasta = req.query.hasta ? new Date(req.query.hasta) : null;
+  const nivelFiltro = req.query.nivel ? parseInt(req.query.nivel) : null;
+  let desde = req.query.desde ? new Date(req.query.desde) : null;
+  let hasta = req.query.hasta ? new Date(req.query.hasta) : null;
+  // Interpreta año y periodo contable si se envían
+  if (req.query.anio) {
+    const anio = parseInt(req.query.anio);
+    desde = new Date(`${anio}-01-01T00:00:00`);
+    hasta = new Date(`${anio}-12-31T23:59:59`);
+  }
+  if (req.query.periodoContable) {
+    // Buscar el periodo contable en la BDD (simulado aquí)
+    // En producción, deberías consultar la tabla periodos_contables
+    // Ejemplo: periodoContable = "2025-01" => enero 2025
+    const [anio, mes] = req.query.periodoContable.split("-");
+    if (anio && mes) {
+      desde = new Date(`${anio}-${mes}-01T00:00:00`);
+      // Calcular último día del mes
+      const lastDay = new Date(desde.getFullYear(), desde.getMonth() + 1, 0).getDate();
+      hasta = new Date(`${anio}-${mes}-${lastDay}T23:59:59`);
+    }
+  }
   const saldos = {};
   db.select().from(planCuentas).then(cuentas => {
+    // Si se filtra por cuentaCodigo, obtener todas las descendientes recursivamente
+    let codigosPermitidos = null;
+    if (cuentaCodigo) {
+      codigosPermitidos = new Set();
+      function agregarDescendientes(cod) {
+        codigosPermitidos.add(cod);
+        cuentas.filter(c => c.padre_codigo === cod).forEach(hija => agregarDescendientes(hija.codigo));
+      }
+      agregarDescendientes(cuentaCodigo);
+    }
     cuentas.forEach(cuenta => {
-      if (cuentaCodigo && cuenta.codigo !== cuentaCodigo) return;
+      if (codigosPermitidos && !codigosPermitidos.has(cuenta.codigo)) return;
+      if (nivelFiltro && cuenta.nivel > nivelFiltro) return;
       saldos[cuenta.codigo] = {
         nombre: cuenta.nombre,
         tipo: cuenta.tipo,
-        debito: 0,
-        credito: 0,
-        saldo: 0
+        nivel: cuenta.nivel,
+        padre_codigo: cuenta.padre_codigo,
+        saldoAnterior: 0,
+        movDebito: 0,
+        movCredito: 0,
+        saldoDebito: 0,
+        saldoCredito: 0
       };
     });
 
+    // Calcular saldos anteriores (antes de 'desde')
     transacciones.forEach(tx => {
       if (terceroId && tx.terceroId !== terceroId) return;
-      if (desde && new Date(tx.fecha) < desde) return;
-      if (hasta && new Date(tx.fecha) > hasta) return;
+      const fechaTx = new Date(tx.fecha);
       tx.cuentas.forEach(c => {
         if (saldos[c.codigo]) {
-          saldos[c.codigo].debito += c.debito;
-          saldos[c.codigo].credito += c.credito;
+          if (desde && fechaTx < desde) {
+            saldos[c.codigo].saldoAnterior += c.debito - c.credito;
+          }
         }
       });
     });
 
+    // Calcular movimientos del periodo y saldo final
+    transacciones.forEach(tx => {
+      if (terceroId && tx.terceroId !== terceroId) return;
+      const fechaTx = new Date(tx.fecha);
+      if (desde && fechaTx < desde) return;
+      if (hasta && fechaTx > hasta) return;
+      tx.cuentas.forEach(c => {
+        if (saldos[c.codigo]) {
+          saldos[c.codigo].movDebito += c.debito;
+          saldos[c.codigo].movCredito += c.credito;
+        }
+      });
+    });
+
+    // Calcular saldos finales (separar en débito/crédito)
     Object.keys(saldos).forEach(codigo => {
-      saldos[codigo].saldo = saldos[codigo].debito - saldos[codigo].credito;
+      const s = saldos[codigo];
+      const saldoFinal = s.saldoAnterior + s.movDebito - s.movCredito;
+      s.saldoDebito = saldoFinal > 0 ? saldoFinal : 0;
+      s.saldoCredito = saldoFinal < 0 ? Math.abs(saldoFinal) : 0;
     });
 
     // Exportación a Excel/PDF
     if (req.query.export === 'excel') {
       const workbook = new ExcelJS.Workbook();
       const sheet = workbook.addWorksheet('Balance de Prueba');
-      sheet.addRow(['Código', 'Nombre', 'Tipo', 'Débito', 'Crédito', 'Saldo']);
+      sheet.addRow(['Código', 'Nombre', 'Saldo anterior', 'Mov. Débito', 'Mov. Crédito', 'Saldo Débito', 'Saldo Crédito']);
       Object.entries(saldos).forEach(([codigo, data]) => {
-        sheet.addRow([codigo, data.nombre, data.tipo, data.debito, data.credito, data.saldo]);
+        sheet.addRow([
+          codigo,
+          data.nombre,
+          data.saldoAnterior,
+          data.movDebito,
+          data.movCredito,
+          data.saldoDebito,
+          data.saldoCredito
+        ]);
       });
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
       res.setHeader('Content-Disposition', 'attachment; filename=balance_prueba.xlsx');
@@ -64,7 +125,7 @@ export function getBalancePrueba(req, res) {
       doc.fontSize(16).text('Balance de Prueba', { align: 'center' });
       doc.moveDown();
       Object.entries(saldos).forEach(([codigo, data]) => {
-        doc.fontSize(12).text(`Código: ${codigo} | Nombre: ${data.nombre} | Tipo: ${data.tipo} | Débito: ${data.debito} | Crédito: ${data.credito} | Saldo: ${data.saldo}`);
+        doc.fontSize(12).text(`Código: ${codigo} | Nombre: ${data.nombre} | Saldo anterior: ${data.saldoAnterior} | Mov. Débito: ${data.movDebito} | Mov. Crédito: ${data.movCredito} | Saldo Débito: ${data.saldoDebito} | Saldo Crédito: ${data.saldoCredito}`);
       });
       doc.end();
       return;

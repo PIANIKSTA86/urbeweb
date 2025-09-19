@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import BalancePruebaModal from "./BalancePruebaModal";
 import { ReporteDef } from "./reportesData";
 
 interface Props {
@@ -6,47 +7,123 @@ interface Props {
   onClose: () => void;
 }
 
-const cuentasEjemplo = [
-  { codigo: "110505", nombre: "Caja General" },
-  { codigo: "130505", nombre: "Clientes Nacionales" },
-  { codigo: "220505", nombre: "Proveedores Nacionales" },
-  // ...simular más cuentas si se requiere
-];
+
+// Hook para buscar cuentas en el backend
+function useCuentasPUC(busqueda: string) {
+  const [cuentas, setCuentas] = React.useState<{ codigo: string; nombre: string }[]>([]);
+  const [loading, setLoading] = React.useState(false);
+  React.useEffect(() => {
+    let ignore = false;
+    async function fetchCuentas() {
+      setLoading(true);
+      try {
+        const url = busqueda && busqueda.trim() !== "" ? `/api/contabilidad/puc?search=${encodeURIComponent(busqueda)}` : "/api/contabilidad/puc";
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("Error al consultar cuentas");
+        const data = await res.json();
+        if (!ignore) setCuentas(data.map((c: any) => ({ codigo: c.codigo, nombre: c.nombre })));
+      } catch (e) {
+        if (!ignore) setCuentas([]);
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    }
+    fetchCuentas();
+    return () => { ignore = true; };
+  }, [busqueda]);
+  return { cuentas, loading };
+}
 
 
-const tercerosEjemplo = [
-  { nit: "900123456", nombre: "Juan Pérez" },
-  { nit: "800987654", nombre: "Comercial XYZ S.A.S." },
-  { nit: "123456789", nombre: "María López" },
-  // ...simular más terceros si se requiere
-];
 
-const centrosEjemplo = [
-  { codigo: "01", nombre: "Administración" },
-  { codigo: "02", nombre: "Mantenimiento" },
-  { codigo: "03", nombre: "Servicios Generales" },
-  // ...simular más centros si se requiere
-];
+// Hook para buscar terceros en el backend, enviando token si existe
+function useTerceros(busqueda: string) {
+  const [terceros, setTerceros] = React.useState<{ nit: string; nombre: string }[]>([]);
+  const [loading, setLoading] = React.useState(false);
+  React.useEffect(() => {
+    let ignore = false;
+    async function fetchTerceros() {
+      setLoading(true);
+      try {
+        const url = busqueda && busqueda.trim() !== "" ? `/api/terceros?busqueda=${encodeURIComponent(busqueda)}` : "/api/terceros?limite=20";
+        const token = localStorage.getItem("auth_token");
+        const res = await fetch(url, {
+          headers: token ? { "Authorization": `Bearer ${token}` } : {},
+        });
+        if (!res.ok) throw new Error("Error al consultar terceros");
+        const data = await res.json();
+  // data puede ser { terceros: [...] } o array plano
+  let lista = Array.isArray(data) ? data : (data.terceros || data.data || []);
+  if (!ignore) setTerceros(lista.map((t: any) => ({ nit: t.nit || t.numeroIdentificacion || t.id, nombre: t.razonSocial || (t.primerNombre ? `${t.primerNombre} ${t.primerApellido || ''}`.trim() : t.numeroIdentificacion) })));
+      } catch (e) {
+        if (!ignore) setTerceros([]);
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    }
+    fetchTerceros();
+    return () => { ignore = true; };
+  }, [busqueda]);
+  return { terceros, loading };
+}
+
+
+// Hook para buscar centros de costo en el backend
+function useCentrosCosto(busqueda: string) {
+  const [centros, setCentros] = React.useState<{ codigo: string; nombre: string }[]>([]);
+  const [loading, setLoading] = React.useState(false);
+  React.useEffect(() => {
+    let ignore = false;
+    async function fetchCentros() {
+      setLoading(true);
+      try {
+        // No hay búsqueda en backend, filtrar en frontend
+        const res = await fetch("/api/contabilidad/centros-costo");
+        if (!res.ok) throw new Error("Error al consultar centros de costo");
+        const data = await res.json();
+        let lista = Array.isArray(data) ? data : (data.data || []);
+        if (!ignore) setCentros(lista.map((c: any) => ({ codigo: c.codigo || c.id, nombre: c.nombre })));
+      } catch (e) {
+        if (!ignore) setCentros([]);
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    }
+    fetchCentros();
+    return () => { ignore = true; };
+  }, []);
+  // Filtrar en frontend
+  const centrosFiltrados = centros.filter(c =>
+    String(c.codigo || "").includes(busqueda) || String(c.nombre || "").toLowerCase().includes(busqueda.toLowerCase())
+  );
+  return { centros: centrosFiltrados, loading };
+}
 
 const ReporteFiltroModal: React.FC<Props> = ({ reporte, onClose }) => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [resultado, setResultado] = useState<any>(null);
+  const [showResult, setShowResult] = useState(false);
+  const [formato, setFormato] = useState("pantalla");
+
   const [todosCentros, setTodosCentros] = useState(true);
+  const [nivel, setNivel] = useState(0);
   const [centro, setCentro] = useState("");
   const [busquedaCentro, setBusquedaCentro] = useState("");
-  const centrosFiltrados = centrosEjemplo.filter(c =>
-    c.codigo.includes(busquedaCentro) || c.nombre.toLowerCase().includes(busquedaCentro.toLowerCase())
-  );
+  const { centros: centrosFiltrados, loading: loadingCentros } = useCentrosCosto(busquedaCentro);
+
   const [todasCuentas, setTodasCuentas] = useState(true);
   const [cuenta, setCuenta] = useState("");
   const [busqueda, setBusqueda] = useState("");
-  const cuentasFiltradas = cuentasEjemplo.filter(c =>
-    c.codigo.includes(busqueda) || c.nombre.toLowerCase().includes(busqueda.toLowerCase())
-  );
+  const { cuentas: cuentasFiltradas, loading: loadingCuentas } = useCuentasPUC(busqueda);
+
 
   const [todosTerceros, setTodosTerceros] = useState(true);
   const [tercero, setTercero] = useState("");
   const [busquedaTercero, setBusquedaTercero] = useState("");
-  const tercerosFiltrados = tercerosEjemplo.filter(t =>
-    t.nit.includes(busquedaTercero) || t.nombre.toLowerCase().includes(busquedaTercero.toLowerCase())
+  const { terceros, loading: loadingTerceros } = useTerceros(busquedaTercero);
+  const tercerosFiltrados = terceros.filter(t =>
+    String(t.nit || "").includes(busquedaTercero) || String(t.nombre || "").toLowerCase().includes(busquedaTercero.toLowerCase())
   );
 
   const [periodo, setPeriodo] = useState("anual");
@@ -54,22 +131,94 @@ const ReporteFiltroModal: React.FC<Props> = ({ reporte, onClose }) => {
   const [periodoContable, setPeriodoContable] = useState("");
   const [fechaInicial, setFechaInicial] = useState("");
   const [fechaFinal, setFechaFinal] = useState("");
-  const aniosDisponibles = ["2025", "2024", "2023", "2022"]; // Simulado, conectar a BDD
-  const periodosContables = [
-    { id: "2025-01", nombre: "Enero 2025" },
-    { id: "2025-02", nombre: "Febrero 2025" },
-    { id: "2024-12", nombre: "Diciembre 2024" },
-    // ...simular más periodos si se requiere
-  ];
+
+  // Hook para obtener años únicos de periodos contables
+  function useAniosPeriodos() {
+    const [anios, setAnios] = React.useState<string[]>([]);
+    React.useEffect(() => {
+      fetch("/api/contabilidad/periodos")
+        .then(res => res.json())
+        .then((data) => {
+          // data puede ser array de periodos con campo 'ano'
+          const aniosUnicos = Array.from(new Set((Array.isArray(data) ? data : []).map((p: any) => String(p.ano)))).sort((a, b) => b.localeCompare(a));
+          setAnios(aniosUnicos);
+        })
+        .catch(() => setAnios([]));
+    }, []);
+    return anios;
+  }
+
+  const aniosDisponibles = useAniosPeriodos();
+
+  // Hook para obtener periodos contables desde la API
+  function usePeriodosContables() {
+    const [periodos, setPeriodos] = React.useState<{ id: string; nombre: string }[]>([]);
+    React.useEffect(() => {
+      fetch("/api/contabilidad/periodos")
+        .then(res => res.json())
+        .then((data) => {
+          // data puede ser array de periodos con campos 'id', 'nombre', 'mes', 'ano'
+          const periodosOrdenados = (Array.isArray(data) ? data : [])
+            .map((p: any) => ({
+              id: p.id,
+              nombre: p.nombre || `${p.mes?.toString().padStart(2, "0") || ""}/${p.ano || ""}`
+            }))
+            .sort((a, b) => b.nombre.localeCompare(a.nombre));
+          setPeriodos(periodosOrdenados);
+        })
+        .catch(() => setPeriodos([]));
+    }, []);
+    return periodos;
+  }
+
+  const periodosContables = usePeriodosContables();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    setResultado(null);
+    setShowResult(false);
+    try {
+      // Solo implementado para balance de prueba y pantalla
+      if (reporte.key === "balance-prueba" && formato === "pantalla") {
+        // Construir query params
+        const params = new URLSearchParams();
+        // Solo enviar cuentaCodigo si el check 'todas las cuentas' está desactivado
+        if (!todasCuentas && cuenta) {
+          params.append("cuentaCodigo", cuenta.split(" - ")[0]);
+        }
+        if (nivel && nivel > 0) params.append("nivel", nivel.toString());
+        if (!todosTerceros && tercero) params.append("terceroId", tercero.split(" - ")[0]);
+        if (periodo === "anual" && anio) params.append("anio", anio);
+        if (periodo === "periodo" && periodoContable) params.append("periodoContable", periodoContable);
+        if (periodo === "rango" && fechaInicial) params.append("desde", fechaInicial);
+        if (periodo === "rango" && fechaFinal) params.append("hasta", fechaFinal);
+        const res = await fetch(`/api/reportes/balance-prueba?${params.toString()}`);
+        if (!res.ok) throw new Error("Error al consultar el balance de prueba");
+        const data = await res.json();
+        setResultado(data);
+        setShowResult(true);
+      } else {
+        // Otros formatos o reportes: por ahora solo cerrar
+        setError("Solo disponible para Balance de Prueba en pantalla");
+      }
+    } catch (err: any) {
+      setError(err.message || "Error inesperado");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-      <div className="bg-white rounded shadow-lg p-6 w-full max-w-2xl relative overflow-y-auto max-h-[90vh]">
-        <button className="absolute top-2 right-2 text-gray-500 text-2xl" onClick={onClose}>×</button>
-        <h2 className="text-lg font-bold mb-2">{reporte.nombre}</h2>
-        <p className="mb-2 text-gray-700 text-sm">{reporte.descripcion}</p>
-        {/* Filtros de reportes */}
-        <form className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <>
+      <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+        <div className="bg-white rounded shadow-lg p-6 w-full max-w-2xl relative overflow-y-auto max-h-[90vh]">
+          <button className="absolute top-2 right-2 text-gray-500 text-2xl" onClick={onClose}>×</button>
+          <h2 className="text-lg font-bold mb-2">{reporte.nombre}</h2>
+          <p className="mb-2 text-gray-700 text-sm">{reporte.descripcion}</p>
+          {/* Filtros de reportes */}
+          <form className="grid grid-cols-1 md:grid-cols-2 gap-4" onSubmit={handleSubmit}>
         {/* Tipo de reporte */}
         <div className="col-span-1">
           <label className="block font-medium mb-1 text-xs">Tipo de reporte</label>
@@ -82,15 +231,13 @@ const ReporteFiltroModal: React.FC<Props> = ({ reporte, onClose }) => {
         {/* Nivel de cuentas */}
         <div className="col-span-1">
           <label className="block font-medium mb-1 text-xs">Nivel de cuentas</label>
-          <select className="w-full border rounded px-2 py-1 text-sm">
-            <option value="">Todos los niveles</option>
-            <option value="1">Nivel 1</option>
-            <option value="2">Nivel 2</option>
-            <option value="3">Nivel 3</option>
-            <option value="4">Nivel 4</option>
-            <option value="5">Nivel 5</option>
-            <option value="6">Nivel 6</option>
-            <option value="7">Nivel 7</option>
+          <select className="w-full border rounded px-2 py-1 text-sm" value={nivel} onChange={e => setNivel(Number(e.target.value))}>
+            <option value={0}>Todos los niveles</option>
+            <option value={1}>Nivel 1</option>
+            <option value={2}>Nivel 2</option>
+            <option value={3}>Nivel 3</option>
+            <option value={4}>Nivel 4</option>
+            <option value={5}>Nivel 5</option>
           </select>
         </div>
         {/* Selector cuentas contables */}
@@ -107,13 +254,14 @@ const ReporteFiltroModal: React.FC<Props> = ({ reporte, onClose }) => {
           <input
             type="text"
             className="w-full border rounded px-2 py-1 text-sm"
-            placeholder="Buscar o seleccionar cuenta..."
+            placeholder={loadingCuentas ? "Cargando cuentas..." : "Buscar o seleccionar cuenta..."}
             value={cuenta}
             onChange={e => setCuenta(e.target.value)}
             disabled={todasCuentas}
             onFocus={() => setBusqueda("")}
             onInput={e => setBusqueda(e.currentTarget.value)}
             list="cuentas-list"
+            autoComplete="off"
           />
           {!todasCuentas && (
             <datalist id="cuentas-list">
@@ -137,13 +285,14 @@ const ReporteFiltroModal: React.FC<Props> = ({ reporte, onClose }) => {
           <input
             type="text"
             className="w-full border rounded px-2 py-1 text-sm"
-            placeholder="Buscar o seleccionar tercero (NIT o nombre)..."
+            placeholder={loadingTerceros ? "Cargando terceros..." : "Buscar o seleccionar tercero (NIT o nombre)..."}
             value={tercero}
             onChange={e => setTercero(e.target.value)}
             disabled={todosTerceros}
             onFocus={() => setBusquedaTercero("")}
             onInput={e => setBusquedaTercero(e.currentTarget.value)}
             list="terceros-list"
+            autoComplete="off"
           />
           {!todosTerceros && (
             <datalist id="terceros-list">
@@ -167,13 +316,14 @@ const ReporteFiltroModal: React.FC<Props> = ({ reporte, onClose }) => {
           <input
             type="text"
             className="w-full border rounded px-2 py-1 text-sm"
-            placeholder="Buscar o seleccionar centro..."
+            placeholder={loadingCentros ? "Cargando centros..." : "Buscar o seleccionar centro..."}
             value={centro}
             onChange={e => setCentro(e.target.value)}
             disabled={todosCentros}
             onFocus={() => setBusquedaCentro("")}
             onInput={e => setBusquedaCentro(e.currentTarget.value)}
             list="centros-list"
+            autoComplete="off"
           />
           {!todosCentros && (
             <datalist id="centros-list">
@@ -213,6 +363,7 @@ const ReporteFiltroModal: React.FC<Props> = ({ reporte, onClose }) => {
               onChange={e => setAnio(e.target.value)}
             >
               <option value="">Seleccione año</option>
+              {aniosDisponibles.length === 0 && <option disabled>Cargando años...</option>}
               {aniosDisponibles.map(a => (
                 <option key={a} value={a}>{a}</option>
               ))}
@@ -225,6 +376,7 @@ const ReporteFiltroModal: React.FC<Props> = ({ reporte, onClose }) => {
               onChange={e => setPeriodoContable(e.target.value)}
             >
               <option value="">Seleccione periodo contable</option>
+              {periodosContables.length === 0 && <option disabled>Cargando periodos...</option>}
               {periodosContables.map(p => (
                 <option key={p.id} value={p.id}>{p.nombre}</option>
               ))}
@@ -253,21 +405,28 @@ const ReporteFiltroModal: React.FC<Props> = ({ reporte, onClose }) => {
             </div>
           )}
         </div>
-        {/* Selector formato de salida */}
+        {/* Selector formato de visualizacion */}
         <div className="col-span-1">
-          <label className="block font-medium mb-1 text-xs">Formato de salida</label>
-          <select className="w-full border rounded px-2 py-1 text-sm">
+          <label className="block font-medium mb-1 text-xs">Formato de visualizacion</label>
+          <select className="w-full border rounded px-2 py-1 text-sm" value={formato} onChange={e => setFormato(e.target.value)}>
+            <option value="pantalla">Pantalla</option>
             <option value="pdf">PDF</option>
             <option value="excel">Excel</option>
           </select>
         </div>
         <div className="col-span-1 md:col-span-2">
-          <button type="submit" className="bg-primary text-primary-foreground px-4 py-2 rounded w-full">Generar reporte</button>
+          <button type="submit" className="bg-primary text-primary-foreground px-4 py-2 rounded w-full" disabled={loading}>
+            {loading ? "Generando..." : "Generar reporte"}
+          </button>
         </div>
+        {error && <div className="col-span-2 text-red-600 text-xs mt-2">{error}</div>}
       </form>
-    </div>
-  </div>
-
+        </div>
+      </div>
+      {showResult && resultado && reporte.key === "balance-prueba" && (
+        <BalancePruebaModal data={resultado} onClose={() => setShowResult(false)} />
+      )}
+    </>
   );
 };
 
