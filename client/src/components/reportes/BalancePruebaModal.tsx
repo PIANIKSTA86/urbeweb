@@ -145,8 +145,8 @@ const BalancePruebaModal: React.FC<BalancePruebaModalProps> = ({ data, onClose }
                   }
                 });
 
-                // Función para sumar los campos de un nodo y sus hijos
-                function sumarCampos(nodo: any) {
+                // Función para sumar los campos de un nodo y sus hijos y marcar visibilidad
+                const marcarVisiblesYSumar = (nodo: any) => {
                   let subtotal = {
                     saldoAnterior: nodo.saldoAnterior || 0,
                     movDebito: nodo.movDebito || 0,
@@ -154,29 +154,35 @@ const BalancePruebaModal: React.FC<BalancePruebaModalProps> = ({ data, onClose }
                     saldoDebito: nodo.saldoDebito || 0,
                     saldoCredito: nodo.saldoCredito || 0
                   };
+                  let visible = (subtotal.saldoAnterior !== 0 || subtotal.movDebito !== 0 || subtotal.movCredito !== 0 || subtotal.saldoDebito !== 0 || subtotal.saldoCredito !== 0);
                   if (nodo.hijos && nodo.hijos.length > 0) {
+                    let hijoVisible = false;
                     nodo.hijos.forEach((h: any) => {
-                      const sub = sumarCampos(h);
+                      const sub = marcarVisiblesYSumar(h);
                       subtotal.saldoAnterior += sub.saldoAnterior;
                       subtotal.movDebito += sub.movDebito;
                       subtotal.movCredito += sub.movCredito;
                       subtotal.saldoDebito += sub.saldoDebito;
                       subtotal.saldoCredito += sub.saldoCredito;
+                      if (h.visible) hijoVisible = true;
                     });
+                    visible = visible || hijoVisible;
                   }
                   nodo._subtotal = subtotal;
+                  nodo.visible = visible;
                   return subtotal;
-                }
-                raiz.forEach(sumarCampos);
+                };
+                raiz.forEach(marcarVisiblesYSumar);
 
-                // Recorrer árbol y renderizar filas y subtotales
+                // Recorrer árbol y renderizar filas y subtotales solo si visible
                 const filas: any[] = [];
-                function recorrerConSubtotales(nodos: any[], nivel = 1) {
+                const recorrerConSubtotalesVisibles = (nodos: any[], nivel = 1) => {
                   nodos.sort((a, b) => a.codigo.localeCompare(b.codigo));
                   for (const n of nodos) {
+                    if (!n.visible) continue;
                     filas.push({ ...n, esSubtotal: false });
                     if (n.hijos && n.hijos.length > 0) {
-                      recorrerConSubtotales(n.hijos, nivel + 1);
+                      recorrerConSubtotalesVisibles(n.hijos, nivel + 1);
                       // Fila de subtotal para este grupo
                       filas.push({
                         codigo: n.codigo + "-subtotal",
@@ -187,8 +193,8 @@ const BalancePruebaModal: React.FC<BalancePruebaModalProps> = ({ data, onClose }
                       });
                     }
                   }
-                }
-                recorrerConSubtotales(raiz);
+                };
+                recorrerConSubtotalesVisibles(raiz);
 
                 // Calcular totales generales
                 const totalGeneral = raiz.reduce((acc, n) => {
