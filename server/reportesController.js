@@ -29,10 +29,6 @@ export async function getBalancePrueba(req, res) {
     // YYYY-MM-DD
     hasta.setHours(23, 59, 59, 999);
   }
-  console.log('Filtro de fechas:', {
-    desde: desde ? desde.toISOString() : null,
-    hasta: hasta ? hasta.toISOString() : null
-  });
   // Interpreta año y periodo contable si se envían
   if (req.query.anio) {
     const anio = parseInt(req.query.anio);
@@ -46,10 +42,11 @@ export async function getBalancePrueba(req, res) {
       // Es un UUID
       try {
         const periodosContables = (await import('../shared/schema.js')).periodosContables;
-        const periodo = await db.select().from(periodosContables).where(periodosContables.id.eq(periodoId)).limit(1);
-        if (periodo && periodo.length > 0) {
-          desde = new Date(periodo[0].fecha_inicio);
-          hasta = new Date(periodo[0].fecha_fin);
+        const periodos = await db.select().from(periodosContables);
+        const periodo = periodos.find(p => p.id === periodoId);
+        if (periodo) {
+          desde = new Date(periodo.fecha_inicio);
+          hasta = new Date(periodo.fecha_fin);
         } else {
           console.warn('No se encontró el periodo contable con id', periodoId);
         }
@@ -66,6 +63,11 @@ export async function getBalancePrueba(req, res) {
       }
     }
   }
+  // Ahora sí, log del filtro de fechas actualizado
+  console.log('Filtro de fechas:', {
+    desde: desde ? desde.toISOString() : null,
+    hasta: hasta ? hasta.toISOString() : null
+  });
   const saldos = {};
   // Usar la base de datos real de movimientos contables
   // Si no hay filtro de fechas, pero hay año, usar el año
@@ -117,6 +119,7 @@ export async function getBalancePrueba(req, res) {
     });
 
     let movimientosPrevios = 0;
+    let movimientosPreviosDebug = [];
     movimientos.forEach(tx => {
       if (terceroId && tx.tercero_id !== terceroId) return;
       // Normalizar fechas a YYYY-MM-DD para comparar solo la fecha
@@ -127,15 +130,32 @@ export async function getBalancePrueba(req, res) {
       const desdeStr = desde.toISOString().slice(0, 10);
       const cuentasTx = detallesPorTransaccion[tx.id] || [];
       cuentasTx.forEach(c => {
-        if (saldos[c.codigo]) {
+        const codigoCuenta = idToCodigo[c.cuenta_id];
+        if (codigoCuenta && saldos[codigoCuenta]) {
           if (desdeStr && fechaTxStr < desdeStr) {
-            saldos[c.codigo].saldoAnterior += c.debito - c.credito;
+            saldos[codigoCuenta].saldoAnterior += Number(c.debito) - Number(c.credito);
             movimientosPrevios++;
+            if (movimientosPreviosDebug.length < 20) {
+              movimientosPreviosDebug.push({
+                tx_id: tx.id,
+                fecha: tx.fecha,
+                fechaTxStr,
+                desdeStr,
+                cuenta_codigo: codigoCuenta,
+                debito: c.debito,
+                credito: c.credito
+              });
+            }
           }
         }
       });
     });
     console.log('Movimientos previos al periodo:', movimientosPrevios);
+    if (movimientosPreviosDebug.length > 0) {
+      console.log('[DEBUG] Movimientos considerados para saldo anterior:', JSON.stringify(movimientosPreviosDebug, null, 2));
+    } else {
+      console.log('[DEBUG] No se encontraron movimientos previos al periodo para saldo anterior.');
+    }
 
     let movimientosPeriodo = 0;
     movimientos.forEach(tx => {
