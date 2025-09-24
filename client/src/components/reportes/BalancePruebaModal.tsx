@@ -1,33 +1,77 @@
 import React, { useRef, useEffect } from "react";
 
 interface BalancePruebaModalProps {
-  data: any;
+  data: { movimientos: any[]; planCuentas: any[] };
   onClose: () => void;
 }
 
+// Función para construir el árbol jerárquico del plan de cuentas
+function construirArbolCuentas(planCuentas: any[]) {
+  const cuentasPorCodigo: Record<string, any> = {};
+  planCuentas.forEach(c => {
+    cuentasPorCodigo[c.codigo] = { ...c, hijos: [] };
+  });
+  const raiz: any[] = [];
+  planCuentas.forEach(c => {
+    if (c.padre_codigo && cuentasPorCodigo[c.padre_codigo]) {
+      cuentasPorCodigo[c.padre_codigo].hijos.push(cuentasPorCodigo[c.codigo]);
+    } else {
+      raiz.push(cuentasPorCodigo[c.codigo]);
+    }
+  });
+  return raiz;
+}
+
 const BalancePruebaModal: React.FC<BalancePruebaModalProps & { nivel?: number }> = ({ data, onClose, nivel }) => {
-  if (!data || !Array.isArray(data)) {
-    console.warn('[BalancePruebaModal] No se recibió un array de datos:', data);
+  if (!data || !Array.isArray(data.movimientos) || !Array.isArray(data.planCuentas)) {
+    console.warn('[BalancePruebaModal] No se recibió el formato esperado:', data);
     return <div className="p-4">No se recibieron datos para mostrar el balance de prueba.</div>;
   }
 
-  // Log de los datos recibidos
-  console.log('[BalancePruebaModal] Datos recibidos:', data);
+  // Logs de depuración
+  console.log('[BalancePruebaModal] Movimientos recibidos:', data.movimientos);
+  console.log('[BalancePruebaModal] PlanCuentas recibidas:', data.planCuentas);
 
-  // Adaptar los datos recibidos del backend (array de filas)
-  const filas = data.map((row: any, idx: number) => {
-    console.log(`[BalancePruebaModal] Fila ${idx}:`, row);
-    return {
-      codigo: row.codigo_nivel,
-      nombre: row.tercero_nombre ? row.tercero_nombre : row.nombre_nivel,
-      tercero: row.tercero_identificacion || '',
-      nivel: row.nivel || 1,
+  // Construir árbol jerárquico
+  const arbolCuentas = construirArbolCuentas(data.planCuentas);
+  console.log('[BalancePruebaModal] Árbol de cuentas construido:', arbolCuentas);
+
+  // Mapear saldos de movimientos a cuentas
+  const saldosPorCodigo: Record<string, any> = {};
+  data.movimientos.forEach((row: any) => {
+    saldosPorCodigo[row.codigo_nivel] = {
       saldoAnterior: Number(row.saldo_anterior) || 0,
       movDebito: Number(row.mov_debito) || 0,
       movCredito: Number(row.mov_credito) || 0,
       saldoFinal: Number(row.saldo_final) || 0,
+      tercero: row.tercero_identificacion || '',
+      nombre: row.tercero_nombre ? row.tercero_nombre : row.nombre_nivel,
+      tipo_reporte: row.tipo_reporte,
     };
   });
+
+  // Función recursiva para renderizar el árbol y mostrar los saldos
+  function renderFilas(cuentas: any[], nivel: number = 1): any[] {
+    return cuentas.flatMap(cuenta => {
+      const saldo = saldosPorCodigo[cuenta.codigo] || {};
+      const fila = {
+        codigo: cuenta.codigo,
+        nombre: saldo.nombre || cuenta.nombre,
+        tercero: saldo.tercero || '',
+        nivel: cuenta.nivel || nivel,
+        saldoAnterior: saldo.saldoAnterior || 0,
+        movDebito: saldo.movDebito || 0,
+        movCredito: saldo.movCredito || 0,
+        saldoFinal: saldo.saldoFinal || 0,
+      };
+      // Log de cada fila generada
+      console.log(`[BalancePruebaModal] Fila generada:`, fila);
+      const hijos = cuenta.hijos && cuenta.hijos.length > 0 ? renderFilas(cuenta.hijos, nivel + 1) : [];
+      return [fila, ...hijos];
+    });
+  }
+
+  const filas = renderFilas(arbolCuentas);
 
   if (filas.length === 0) {
     console.warn('[BalancePruebaModal] El array de filas está vacío.');

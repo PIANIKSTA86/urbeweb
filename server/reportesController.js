@@ -93,8 +93,11 @@ export async function getBalancePrueba(req, res) {
 
   // Usar pool de mysql2 para ejecutar SQL directo
   try {
-    const [rows] = await pool.query(sql, params);
-    res.json(rows);
+    // Obtener movimientos filtrados
+    const [movimientos] = await pool.query(sql, params);
+    // Obtener el árbol completo del plan de cuentas
+    const [planCuentasRows] = await pool.query('SELECT id, codigo, nombre, tipo, nivel, padre_codigo FROM plan_cuentas ORDER BY codigo');
+    res.json({ movimientos, planCuentas: planCuentasRows });
   } catch (err) {
     console.error('Error ejecutando balance de prueba:', err);
     res.status(500).json({ error: 'Error ejecutando balance de prueba', details: err });
