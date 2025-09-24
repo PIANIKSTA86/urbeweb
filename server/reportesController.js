@@ -9,6 +9,20 @@ import PDFDocument from 'pdfkit';
 
 // Balance de prueba: muestra saldos por cuenta
 export async function getBalancePrueba(req, res) {
+  // Log de la consulta SQL y parámetros
+  console.log('[BalancePrueba] SQL:', sql);
+  console.log('[BalancePrueba] Params SQL:', params);
+  // Log de depuración para centro de costo y parámetros recibidos
+  console.log('[BalancePrueba] Params:', {
+    fecha_inicio,
+    fecha_fin,
+    cuenta_filtro,
+    nivel,
+    mostrar_terceros,
+    centro_costo_id
+  });
+  // ...declaraciones originales...
+  // (No log antes de las variables)
   // Parámetros recibidos del frontend
   const fecha_inicio = req.query.fecha_inicio || req.body.fecha_inicio;
   const fecha_fin = req.query.fecha_fin || req.body.fecha_fin;
@@ -98,6 +112,8 @@ export async function getBalancePrueba(req, res) {
 
   // Usar pool de mysql2 para ejecutar SQL directo
   try {
+    console.log('[BalancePrueba] SQL:', sql);
+    console.log('[BalancePrueba] Params SQL:', params);
     // Obtener movimientos filtrados
     const [movimientos] = await pool.query(sql, params);
     // Filtrar movimientos con todos los saldos en cero
