@@ -68,10 +68,51 @@ const BalancePruebaModal: React.FC<BalancePruebaModalProps & { nivel?: number }>
   codigosConSaldo.forEach(agregarPadres);
 
   // Filtrar el árbol para mostrar solo cuentas relevantes
-  function renderFilasFiltradas(cuentas: any[], nivel: number = 1): any[] {
+
+
+  // Función para calcular subtotales sumando los saldos de todas las cuentas hoja (sin hijos)
+  function calcularSubtotalCuentasHoja(cuenta: any): { saldoAnterior: number, movDebito: number, movCredito: number, saldoFinal: number } {
+    let subtotal = { saldoAnterior: 0, movDebito: 0, movCredito: 0, saldoFinal: 0 };
+    function sumarHoja(c: any) {
+      if (!c.hijos || c.hijos.length === 0) {
+        const s = saldosPorCodigo[c.codigo] || {};
+        subtotal.saldoAnterior += Number(s.saldoAnterior) || 0;
+        subtotal.movDebito += Number(s.movDebito) || 0;
+        subtotal.movCredito += Number(s.movCredito) || 0;
+        subtotal.saldoFinal += Number(s.saldoFinal) || 0;
+      } else {
+        c.hijos.forEach((h: any) => {
+          if (codigosRelevantes.has(h.codigo)) {
+            sumarHoja(h);
+          }
+        });
+      }
+    }
+    sumarHoja(cuenta);
+    return subtotal;
+  }
+
+  // Renderizar filas con subtotales y totales
+  function renderFilasConSubtotales(cuentas: any[], nivel: number = 1): any[] {
     return cuentas.flatMap(cuenta => {
       if (!codigosRelevantes.has(cuenta.codigo)) return [];
       const saldo = saldosPorCodigo[cuenta.codigo] || {};
+      // Renderizar hijos primero
+      const hijosFilas = cuenta.hijos && cuenta.hijos.length > 0 ? renderFilasConSubtotales(cuenta.hijos, nivel + 1) : [];
+      // Calcular subtotal solo con hijos directos (no incluir subtotales)
+      const hijosDirectos = cuenta.hijos && cuenta.hijos.length > 0
+        ? cuenta.hijos.filter((h: any) => codigosRelevantes.has(h.codigo))
+        : [];
+      const hijosDirectosFilas = hijosDirectos.map((h: any) => {
+        const s = saldosPorCodigo[h.codigo] || {};
+        return {
+          saldoAnterior: s.saldoAnterior || 0,
+          movDebito: s.movDebito || 0,
+          movCredito: s.movCredito || 0,
+          saldoFinal: s.saldoFinal || 0,
+          esSubtotal: false
+        };
+      });
       const fila = {
         codigo: cuenta.codigo,
         nombre: saldo.nombre || cuenta.nombre,
@@ -81,15 +122,31 @@ const BalancePruebaModal: React.FC<BalancePruebaModalProps & { nivel?: number }>
         movDebito: saldo.movDebito || 0,
         movCredito: saldo.movCredito || 0,
         saldoFinal: saldo.saldoFinal || 0,
+        esSubtotal: false,
+        esTotal: false,
       };
-      // Log de cada fila generada
-      console.log(`[BalancePruebaModal] Fila relevante:`, fila);
-      const hijos = cuenta.hijos && cuenta.hijos.length > 0 ? renderFilasFiltradas(cuenta.hijos, nivel + 1) : [];
-      return [fila, ...hijos];
+      // Si tiene hijos, calcular subtotal sumando todas las cuentas hoja
+      let subtotalRow = null;
+      if (cuenta.hijos && cuenta.hijos.length > 0) {
+        const subtotal = calcularSubtotalCuentasHoja(cuenta);
+        subtotalRow = {
+          codigo: cuenta.codigo + "-subtotal",
+          nombre: `Subtotal ${fila.nombre}`,
+          tercero: '',
+          nivel: nivel,
+          saldoAnterior: subtotal.saldoAnterior,
+          movDebito: subtotal.movDebito,
+          movCredito: subtotal.movCredito,
+          saldoFinal: subtotal.saldoFinal,
+          esSubtotal: true,
+          esTotal: false,
+        };
+      }
+      return [fila, ...hijosFilas, ...(subtotalRow ? [subtotalRow] : [])];
     });
   }
 
-  const filas = renderFilasFiltradas(arbolCuentas);
+  const filas = renderFilasConSubtotales(arbolCuentas);
 
   if (filas.length === 0) {
     console.warn('[BalancePruebaModal] El array de filas está vacío.');
@@ -148,15 +205,37 @@ const BalancePruebaModal: React.FC<BalancePruebaModalProps & { nivel?: number }>
                       </thead>
             <tbody>
               {filas.map((row: any) => (
-                <tr key={row.codigo}>
-                  <td className="px-2 py-1 border" style={{ paddingLeft: `${((row.nivel || 1) - 1) * 16}px` }}>{row.codigo}</td>
-                  <td className="px-2 py-1 border">{row.tercero}</td>
-                  <td className="px-2 py-1 border">{row.nombre}</td>
-                  <td className="px-2 py-1 border text-right">{row.saldoAnterior.toLocaleString()}</td>
-                  <td className="px-2 py-1 border text-right">{row.movDebito.toLocaleString()}</td>
-                  <td className="px-2 py-1 border text-right">{row.movCredito.toLocaleString()}</td>
-                  <td className="px-2 py-1 border text-right">{row.saldoFinal.toLocaleString()}</td>
-                </tr>
+                row.esSubtotal && row.nivel === 1 ? (
+                  <tr key={row.codigo} className="bg-green-100 font-bold">
+                    <td className="px-2 py-1 border" style={{ paddingLeft: `${((row.nivel || 1) - 1) * 16}px` }}></td>
+                    <td className="px-2 py-1 border">Subtotal</td>
+                    <td className="px-2 py-1 border">{row.nombre}</td>
+                    <td className="px-2 py-1 border text-right">{row.saldoAnterior.toLocaleString()}</td>
+                    <td className="px-2 py-1 border text-right">{row.movDebito.toLocaleString()}</td>
+                    <td className="px-2 py-1 border text-right">{row.movCredito.toLocaleString()}</td>
+                    <td className="px-2 py-1 border text-right">{row.saldoFinal.toLocaleString()}</td>
+                  </tr>
+                ) : row.esSubtotal ? (
+                  <tr key={row.codigo} className="bg-blue-100 font-bold">
+                    <td className="px-2 py-1 border" style={{ paddingLeft: `${((row.nivel || 1) - 1) * 16}px` }}></td>
+                    <td className="px-2 py-1 border">Subtotal</td>
+                    <td className="px-2 py-1 border">{row.nombre}</td>
+                    <td className="px-2 py-1 border text-right">{row.saldoAnterior.toLocaleString()}</td>
+                    <td className="px-2 py-1 border text-right">{row.movDebito.toLocaleString()}</td>
+                    <td className="px-2 py-1 border text-right">{row.movCredito.toLocaleString()}</td>
+                    <td className="px-2 py-1 border text-right">{row.saldoFinal.toLocaleString()}</td>
+                  </tr>
+                ) : (
+                  <tr key={row.codigo}>
+                    <td className="px-2 py-1 border" style={{ paddingLeft: `${((row.nivel || 1) - 1) * 16}px` }}>{row.codigo}</td>
+                    <td className="px-2 py-1 border">{row.tercero}</td>
+                    <td className="px-2 py-1 border">{row.nombre}</td>
+                    <td className="px-2 py-1 border text-right">{row.saldoAnterior.toLocaleString()}</td>
+                    <td className="px-2 py-1 border text-right">{row.movDebito.toLocaleString()}</td>
+                    <td className="px-2 py-1 border text-right">{row.movCredito.toLocaleString()}</td>
+                    <td className="px-2 py-1 border text-right">{row.saldoFinal.toLocaleString()}</td>
+                  </tr>
+                )
               ))}
               <tr key="total-general" className="bg-primary/20 font-bold">
                 <td className="px-2 py-1 border" colSpan={2}>TOTAL GENERAL</td>
