@@ -95,9 +95,15 @@ export async function getBalancePrueba(req, res) {
   try {
     // Obtener movimientos filtrados
     const [movimientos] = await pool.query(sql, params);
-    // Obtener el árbol completo del plan de cuentas
-    const [planCuentasRows] = await pool.query('SELECT id, codigo, nombre, tipo, nivel, padre_codigo FROM plan_cuentas ORDER BY codigo');
-    res.json({ movimientos, planCuentas: planCuentasRows });
+    // Filtrar movimientos con todos los saldos en cero
+    const movimientosFiltrados = movimientos.filter(row => {
+      return (
+        (Number(row.saldo_anterior) !== 0 || Number(row.mov_debito) !== 0 || Number(row.mov_credito) !== 0 || Number(row.saldo_final) !== 0)
+      );
+    });
+    // Obtener solo cuentas activas
+    const [planCuentasRows] = await pool.query('SELECT id, codigo, nombre, tipo, nivel, padre_codigo FROM plan_cuentas WHERE estado = 1 ORDER BY codigo');
+    res.json({ movimientos: movimientosFiltrados, planCuentas: planCuentasRows });
   } catch (err) {
     console.error('Error ejecutando balance de prueba:', err);
     res.status(500).json({ error: 'Error ejecutando balance de prueba', details: err });

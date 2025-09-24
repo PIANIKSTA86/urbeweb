@@ -50,9 +50,27 @@ const BalancePruebaModal: React.FC<BalancePruebaModalProps & { nivel?: number }>
     };
   });
 
-  // Función recursiva para renderizar el árbol y mostrar los saldos
-  function renderFilas(cuentas: any[], nivel: number = 1): any[] {
+
+
+  // Construir conjunto de códigos relevantes: cuentas con saldo y sus superiores
+  const codigosConSaldo = Object.keys(saldosPorCodigo);
+  const codigosRelevantes = new Set<string>();
+  const cuentasPorCodigo: Record<string, any> = {};
+  data.planCuentas.forEach(c => { cuentasPorCodigo[c.codigo] = c; });
+
+  // Para cada cuenta con saldo, agregar sus padres recursivamente
+  function agregarPadres(codigo: string) {
+    if (!codigo || codigosRelevantes.has(codigo)) return;
+    codigosRelevantes.add(codigo);
+    const cuenta = cuentasPorCodigo[codigo];
+    if (cuenta && cuenta.padre_codigo) agregarPadres(cuenta.padre_codigo);
+  }
+  codigosConSaldo.forEach(agregarPadres);
+
+  // Filtrar el árbol para mostrar solo cuentas relevantes
+  function renderFilasFiltradas(cuentas: any[], nivel: number = 1): any[] {
     return cuentas.flatMap(cuenta => {
+      if (!codigosRelevantes.has(cuenta.codigo)) return [];
       const saldo = saldosPorCodigo[cuenta.codigo] || {};
       const fila = {
         codigo: cuenta.codigo,
@@ -65,13 +83,13 @@ const BalancePruebaModal: React.FC<BalancePruebaModalProps & { nivel?: number }>
         saldoFinal: saldo.saldoFinal || 0,
       };
       // Log de cada fila generada
-      console.log(`[BalancePruebaModal] Fila generada:`, fila);
-      const hijos = cuenta.hijos && cuenta.hijos.length > 0 ? renderFilas(cuenta.hijos, nivel + 1) : [];
+      console.log(`[BalancePruebaModal] Fila relevante:`, fila);
+      const hijos = cuenta.hijos && cuenta.hijos.length > 0 ? renderFilasFiltradas(cuenta.hijos, nivel + 1) : [];
       return [fila, ...hijos];
     });
   }
 
-  const filas = renderFilas(arbolCuentas);
+  const filas = renderFilasFiltradas(arbolCuentas);
 
   if (filas.length === 0) {
     console.warn('[BalancePruebaModal] El array de filas está vacío.');
