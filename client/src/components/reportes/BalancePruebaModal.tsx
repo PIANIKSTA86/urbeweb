@@ -70,25 +70,24 @@ const BalancePruebaModal: React.FC<BalancePruebaModalProps & { nivel?: number }>
   // Filtrar el árbol para mostrar solo cuentas relevantes
 
 
-  // Función para calcular subtotales sumando los saldos de todas las cuentas hoja (sin hijos)
-  function calcularSubtotalCuentasHoja(cuenta: any): { saldoAnterior: number, movDebito: number, movCredito: number, saldoFinal: number } {
+  // Función para calcular subtotales sumando los saldos de todas las cuentas relevantes bajo cada cuenta padre
+  function calcularSubtotalSubarbol(cuenta: any): { saldoAnterior: number, movDebito: number, movCredito: number, saldoFinal: number } {
     let subtotal = { saldoAnterior: 0, movDebito: 0, movCredito: 0, saldoFinal: 0 };
-    function sumarHoja(c: any) {
-      if (!c.hijos || c.hijos.length === 0) {
+    function sumarSubarbol(c: any) {
+      if (codigosRelevantes.has(c.codigo)) {
         const s = saldosPorCodigo[c.codigo] || {};
         subtotal.saldoAnterior += Number(s.saldoAnterior) || 0;
         subtotal.movDebito += Number(s.movDebito) || 0;
         subtotal.movCredito += Number(s.movCredito) || 0;
         subtotal.saldoFinal += Number(s.saldoFinal) || 0;
-      } else {
+      }
+      if (c.hijos && c.hijos.length > 0) {
         c.hijos.forEach((h: any) => {
-          if (codigosRelevantes.has(h.codigo)) {
-            sumarHoja(h);
-          }
+          sumarSubarbol(h);
         });
       }
     }
-    sumarHoja(cuenta);
+    sumarSubarbol(cuenta);
     return subtotal;
   }
 
@@ -128,7 +127,7 @@ const BalancePruebaModal: React.FC<BalancePruebaModalProps & { nivel?: number }>
       // Si tiene hijos, calcular subtotal sumando todas las cuentas hoja
       let subtotalRow = null;
       if (cuenta.hijos && cuenta.hijos.length > 0) {
-        const subtotal = calcularSubtotalCuentasHoja(cuenta);
+        const subtotal = calcularSubtotalSubarbol(cuenta);
         subtotalRow = {
           codigo: cuenta.codigo + "-subtotal",
           nombre: `Subtotal ${fila.nombre}`,

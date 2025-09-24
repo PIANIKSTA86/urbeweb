@@ -15,6 +15,7 @@ export async function getBalancePrueba(req, res) {
   const cuenta_filtro = req.query.cuenta_filtro || req.body.cuenta_filtro;
   const nivel = parseInt(req.query.nivel || req.body.nivel || 1);
   const mostrar_terceros = parseInt(req.query.mostrar_terceros || req.body.mostrar_terceros || 0);
+  const centro_costo_id = req.query.centro_costo_id || req.body.centro_costo_id;
 
   // Consulta SQL avanzada
   const sql = `
@@ -35,6 +36,7 @@ export async function getBalancePrueba(req, res) {
     WHERE ? = 1 AND ? >= 5 AND pc.nivel = ?
       AND (? IS NULL OR pc.codigo LIKE CONCAT(?, '%'))
       AND mc.fecha <= ?
+      AND (? IS NULL OR mc.centro_costo_id = ?)
     GROUP BY pc.codigo, pc.nombre, t.numero_identificacion, tercero_nombre
     HAVING saldo_anterior != 0 OR mov_debito != 0 OR mov_credito != 0
     UNION ALL
@@ -61,6 +63,7 @@ export async function getBalancePrueba(req, res) {
     WHERE (? BETWEEN 1 AND 4 OR (? >= 5 AND ? = 0))
       AND (? IS NULL OR pc.codigo LIKE CONCAT(?, '%'))
       AND mc.fecha <= ?
+      AND (? IS NULL OR mc.centro_costo_id = ?)
       AND (
         (? = 1 AND pc.nv1 IS NOT NULL) OR
         (? = 2 AND pc.nv2 IS NOT NULL) OR
@@ -85,8 +88,10 @@ export async function getBalancePrueba(req, res) {
   const params = [
     fecha_inicio, fecha_inicio, fecha_fin, fecha_inicio, fecha_fin, fecha_fin,
     mostrar_terceros, nivel, nivel, cuenta_filtro, cuenta_filtro, fecha_fin,
+    centro_costo_id, centro_costo_id,
     nivel, fecha_inicio, fecha_inicio, fecha_fin, fecha_inicio, fecha_fin, fecha_fin,
     nivel, nivel, mostrar_terceros, cuenta_filtro, cuenta_filtro, fecha_fin,
+    centro_costo_id, centro_costo_id,
     nivel, nivel, nivel, nivel, nivel, nivel, nivel,
     nivel
   ];

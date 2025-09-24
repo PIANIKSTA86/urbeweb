@@ -203,7 +203,8 @@ const ReporteFiltroModal: React.FC<Props> = ({ reporte, onClose }) => {
           cuenta_filtro: !todasCuentas && cuenta ? cuenta.split(" - ")[0] : null,
           nivel: nivel || 1,
           mostrar_terceros: mostrarTerceros ? 1 : 0,
-          tercero_id: !todosTerceros && tercero ? tercero.split(" - ")[0] : null
+          tercero_id: !todosTerceros && tercero ? tercero.split(" - ")[0] : null,
+          centro_costo_id: !todosCentros && centro ? centro.split(" - ")[0] : null
         };
         const res = await fetch(`/api/reportes/balance-prueba`, {
           method: "POST",
