@@ -1,7 +1,7 @@
 // Controlador de reportes contables
 // Genera reportes como balance de prueba, por cuenta y por tercero
 
-import { db } from './db.js';
+import { db, pool } from './db.js';
 import { planCuentas, movimientosContables, movimientoDetalle } from '../shared/schema.js';
 // import transacciones from './models/transacciones.js';
 import ExcelJS from 'exceljs';
@@ -9,250 +9,96 @@ import PDFDocument from 'pdfkit';
 
 // Balance de prueba: muestra saldos por cuenta
 export async function getBalancePrueba(req, res) {
-  console.log('== Balance de Prueba: INICIO ==');
-  console.log('Query params:', req.query);
-  // Filtros avanzados: tercero, cuenta, rango de fechas
-  const terceroId = req.query.terceroId ? parseInt(req.query.terceroId) : null;
-  const cuentaCodigo = req.query.cuentaCodigo || null;
-  const nivelFiltro = req.query.nivel ? parseInt(req.query.nivel) : null;
-  let desde = req.query.desde ? new Date(req.query.desde) : null;
-  let hasta = req.query.hasta ? new Date(req.query.hasta) : null;
-  // Forzar siempre el rango si no está definido
-  if (!desde) desde = new Date('1900-01-01');
-  if (!hasta) hasta = new Date('2100-12-31');
-  // Si la fecha viene sin hora, asegurar que el rango incluya todo el día en zona local
-  if (desde && req.query.desde && req.query.desde.length === 10) {
-    // YYYY-MM-DD
-    desde.setHours(0, 0, 0, 0);
+  // Parámetros recibidos del frontend
+  const fecha_inicio = req.query.fecha_inicio || req.body.fecha_inicio;
+  const fecha_fin = req.query.fecha_fin || req.body.fecha_fin;
+  const cuenta_filtro = req.query.cuenta_filtro || req.body.cuenta_filtro;
+  const nivel = parseInt(req.query.nivel || req.body.nivel || 1);
+  const mostrar_terceros = parseInt(req.query.mostrar_terceros || req.body.mostrar_terceros || 0);
+
+  // Consulta SQL avanzada
+  const sql = `
+    SELECT 
+      pc.codigo AS codigo_nivel,
+      pc.nombre AS nombre_nivel,
+      t.numero_identificacion AS tercero_identificacion,
+      TRIM(CONCAT_WS(' ', t.razon_social, t.primer_nombre, t.segundo_nombre, t.primer_apellido, t.segundo_apellido)) AS tercero_nombre,
+      SUM(CASE WHEN mc.fecha < ? THEN md.debito - md.credito ELSE 0 END) AS saldo_anterior,
+      SUM(CASE WHEN mc.fecha BETWEEN ? AND ? THEN md.debito ELSE 0 END) AS mov_debito,
+      SUM(CASE WHEN mc.fecha BETWEEN ? AND ? THEN md.credito ELSE 0 END) AS mov_credito,
+      SUM(CASE WHEN mc.fecha <= ? THEN md.debito - md.credito ELSE 0 END) AS saldo_final,
+      'con_terceros' AS tipo_reporte
+    FROM plan_cuentas pc
+    INNER JOIN movimiento_detalle md ON md.cuenta_id = pc.id
+    INNER JOIN movimientos_contables mc ON mc.id = md.movimiento_id
+    INNER JOIN terceros t ON t.id = md.tercero_id
+    WHERE ? = 1 AND ? >= 5 AND pc.nivel = ?
+      AND (? IS NULL OR pc.codigo LIKE CONCAT(?, '%'))
+      AND mc.fecha <= ?
+    GROUP BY pc.codigo, pc.nombre, t.numero_identificacion, tercero_nombre
+    HAVING saldo_anterior != 0 OR mov_debito != 0 OR mov_credito != 0
+    UNION ALL
+    SELECT 
+      CASE ?
+        WHEN 1 THEN pc.nv1
+        WHEN 2 THEN pc.nv2
+        WHEN 3 THEN pc.nv3
+        WHEN 4 THEN pc.nv4
+        WHEN 5 THEN pc.nv5
+        ELSE pc.codigo
+      END AS codigo_nivel,
+      MAX(pc.nombre) AS nombre_nivel,
+      NULL AS tercero_identificacion,
+      NULL AS tercero_nombre,
+      SUM(CASE WHEN mc.fecha < ? THEN md.debito - md.credito ELSE 0 END) AS saldo_anterior,
+      SUM(CASE WHEN mc.fecha BETWEEN ? AND ? THEN md.debito ELSE 0 END) AS mov_debito,
+      SUM(CASE WHEN mc.fecha BETWEEN ? AND ? THEN md.credito ELSE 0 END) AS mov_credito,
+      SUM(CASE WHEN mc.fecha <= ? THEN md.debito - md.credito ELSE 0 END) AS saldo_final,
+      'consolidado' AS tipo_reporte
+    FROM plan_cuentas pc
+    INNER JOIN movimiento_detalle md ON md.cuenta_id = pc.id
+    INNER JOIN movimientos_contables mc ON mc.id = md.movimiento_id
+    WHERE (? BETWEEN 1 AND 4 OR (? >= 5 AND ? = 0))
+      AND (? IS NULL OR pc.codigo LIKE CONCAT(?, '%'))
+      AND mc.fecha <= ?
+      AND (
+        (? = 1 AND pc.nv1 IS NOT NULL) OR
+        (? = 2 AND pc.nv2 IS NOT NULL) OR
+        (? = 3 AND pc.nv3 IS NOT NULL) OR
+        (? = 4 AND pc.nv4 IS NOT NULL) OR
+        (? = 5 AND pc.nv5 IS NOT NULL) OR
+        (? = 6 AND pc.nivel = 6)
+      )
+    GROUP BY 
+      CASE ?
+        WHEN 1 THEN pc.nv1
+        WHEN 2 THEN pc.nv2
+        WHEN 3 THEN pc.nv3
+        WHEN 4 THEN pc.nv4
+        WHEN 5 THEN pc.nv5
+        ELSE pc.codigo
+      END
+    HAVING saldo_anterior != 0 OR mov_debito != 0 OR mov_credito != 0
+    ORDER BY tipo_reporte DESC, codigo_nivel, tercero_nombre
+  `;
+
+  const params = [
+    fecha_inicio, fecha_inicio, fecha_fin, fecha_inicio, fecha_fin, fecha_fin,
+    mostrar_terceros, nivel, nivel, cuenta_filtro, cuenta_filtro, fecha_fin,
+    nivel, fecha_inicio, fecha_inicio, fecha_fin, fecha_inicio, fecha_fin, fecha_fin,
+    nivel, nivel, mostrar_terceros, cuenta_filtro, cuenta_filtro, fecha_fin,
+    nivel, nivel, nivel, nivel, nivel, nivel, nivel,
+    nivel
+  ];
+
+  // Usar pool de mysql2 para ejecutar SQL directo
+  try {
+    const [rows] = await pool.query(sql, params);
+    res.json(rows);
+  } catch (err) {
+    console.error('Error ejecutando balance de prueba:', err);
+    res.status(500).json({ error: 'Error ejecutando balance de prueba', details: err });
   }
-  if (hasta && req.query.hasta && req.query.hasta.length === 10) {
-    // YYYY-MM-DD
-    hasta.setHours(23, 59, 59, 999);
-  }
-  // Interpreta año y periodo contable si se envían
-  if (req.query.anio) {
-    const anio = parseInt(req.query.anio);
-    desde = new Date(`${anio}-01-01T00:00:00`);
-    hasta = new Date(`${anio}-12-31T23:59:59`);
-  }
-  if (req.query.periodoContable) {
-    // Si es UUID, buscar en la tabla periodos_contables
-    const periodoId = req.query.periodoContable;
-    if (/^[0-9a-fA-F-]{36}$/.test(periodoId)) {
-      // Es un UUID
-      try {
-        const periodosContables = (await import('../shared/schema.js')).periodosContables;
-        const periodos = await db.select().from(periodosContables);
-        const periodo = periodos.find(p => p.id === periodoId);
-        if (periodo) {
-          desde = new Date(periodo.fecha_inicio);
-          hasta = new Date(periodo.fecha_fin);
-        } else {
-          console.warn('No se encontró el periodo contable con id', periodoId);
-        }
-      } catch (err) {
-        console.error('Error consultando periodo contable:', err);
-      }
-    } else {
-      // Si no es UUID, asumir formato "YYYY-MM"
-      const [anio, mes] = periodoId.split("-");
-      if (anio && mes) {
-        desde = new Date(`${anio}-${mes}-01T00:00:00`);
-        const lastDay = new Date(desde.getFullYear(), desde.getMonth() + 1, 0).getDate();
-        hasta = new Date(`${anio}-${mes}-${lastDay}T23:59:59`);
-      }
-    }
-  }
-  // Ahora sí, log del filtro de fechas actualizado
-  console.log('Filtro de fechas:', {
-    desde: desde ? desde.toISOString() : null,
-    hasta: hasta ? hasta.toISOString() : null
-  });
-  const saldos = {};
-  // Usar la base de datos real de movimientos contables
-  // Si no hay filtro de fechas, pero hay año, usar el año
-  // (ya calculado arriba)
-  db.select().from(planCuentas).then(async cuentas => {
-    console.log('Cuentas PUC obtenidas:', cuentas.length);
-    // Crear mapa de id a código de cuenta
-    const idToCodigo = {};
-    cuentas.forEach(cuenta => {
-      idToCodigo[cuenta.id] = cuenta.codigo;
-    });
-    // Si se filtra por cuentaCodigo, obtener todas las descendientes recursivamente
-    let codigosPermitidos = null;
-    if (cuentaCodigo) {
-      codigosPermitidos = new Set();
-      function agregarDescendientes(cod) {
-        codigosPermitidos.add(cod);
-        cuentas.filter(c => c.padre_codigo === cod).forEach(hija => agregarDescendientes(hija.codigo));
-      }
-      agregarDescendientes(cuentaCodigo);
-    }
-    cuentas.forEach(cuenta => {
-      if (codigosPermitidos && !codigosPermitidos.has(cuenta.codigo)) return;
-      if (nivelFiltro && cuenta.nivel > nivelFiltro) return;
-      saldos[cuenta.codigo] = {
-        nombre: cuenta.nombre,
-        tipo: cuenta.tipo,
-        nivel: cuenta.nivel,
-        padre_codigo: cuenta.padre_codigo,
-        saldoAnterior: 0,
-        movDebito: 0,
-        movCredito: 0,
-        saldoDebito: 0,
-        saldoCredito: 0
-      };
-    });
-
-  // Obtener movimientos contables reales
-    const movimientos = await db.select().from(movimientosContables);
-    const detalles = await db.select().from(movimientoDetalle);
-    console.log('Movimientos contables:', movimientos.length);
-    console.log('Detalles de movimientos:', detalles.length);
-
-    // Agrupar detalles por transacción
-    const detallesPorTransaccion = {};
-    detalles.forEach(det => {
-      if (!detallesPorTransaccion[det.movimiento_id]) detallesPorTransaccion[det.movimiento_id] = [];
-      detallesPorTransaccion[det.movimiento_id].push(det);
-    });
-
-    let movimientosPrevios = 0;
-    let movimientosPreviosDebug = [];
-    movimientos.forEach(tx => {
-      if (terceroId && tx.tercero_id !== terceroId) return;
-      // Normalizar fechas a YYYY-MM-DD para comparar solo la fecha
-      // Forzar a YYYY-MM-DD ambos lados
-      const fechaTxStr = (tx.fecha instanceof Date)
-        ? tx.fecha.toISOString().slice(0, 10)
-        : String(tx.fecha).split('T')[0].split(' ')[0];
-      const desdeStr = desde.toISOString().slice(0, 10);
-      const cuentasTx = detallesPorTransaccion[tx.id] || [];
-      cuentasTx.forEach(c => {
-        const codigoCuenta = idToCodigo[c.cuenta_id];
-        if (codigoCuenta && saldos[codigoCuenta]) {
-          if (desdeStr && fechaTxStr < desdeStr) {
-            saldos[codigoCuenta].saldoAnterior += Number(c.debito) - Number(c.credito);
-            movimientosPrevios++;
-            if (movimientosPreviosDebug.length < 20) {
-              movimientosPreviosDebug.push({
-                tx_id: tx.id,
-                fecha: tx.fecha,
-                fechaTxStr,
-                desdeStr,
-                cuenta_codigo: codigoCuenta,
-                debito: c.debito,
-                credito: c.credito
-              });
-            }
-          }
-        }
-      });
-    });
-    console.log('Movimientos previos al periodo:', movimientosPrevios);
-    if (movimientosPreviosDebug.length > 0) {
-      console.log('[DEBUG] Movimientos considerados para saldo anterior:', JSON.stringify(movimientosPreviosDebug, null, 2));
-    } else {
-      console.log('[DEBUG] No se encontraron movimientos previos al periodo para saldo anterior.');
-    }
-
-    let movimientosPeriodo = 0;
-    movimientos.forEach(tx => {
-      if (terceroId && tx.tercero_id !== terceroId) return;
-      // Normalizar fechas a YYYY-MM-DD para comparar solo la fecha
-      const fechaTxStr = (tx.fecha instanceof Date)
-        ? tx.fecha.toISOString().slice(0, 10)
-        : String(tx.fecha).split('T')[0].split(' ')[0];
-      const desdeStr = desde.toISOString().slice(0, 10);
-      const hastaStr = hasta.toISOString().slice(0, 10);
-      // Log de depuración para cada transacción filtrada por fecha
-      if (movimientosPeriodo < 10) {
-        console.log('[DEBUG] tx:', JSON.stringify({
-          id: tx.id,
-          fecha: tx.fecha,
-          fechaTxStr,
-          detalles: (detallesPorTransaccion[tx.id]||[]).length
-        }, null, 2));
-      }
-      // Usar >= desde y <= hasta para incluir todo el rango
-      if (desdeStr && fechaTxStr < desdeStr) return;
-      if (hastaStr && fechaTxStr > hastaStr) return;
-      const cuentasTx = detallesPorTransaccion[tx.id] || [];
-      let detallesSumados = 0;
-      cuentasTx.forEach(c => {
-        // Usar el campo correcto del detalle: cuenta_id
-        const codigoCuenta = idToCodigo[c.cuenta_id];
-        // Log si debito o credito es nulo, vacío o NaN
-        if (
-          c.debito == null || c.credito == null ||
-          c.debito === '' || c.credito === '' ||
-          isNaN(Number(c.debito)) || isNaN(Number(c.credito))
-        ) {
-          console.warn('[WARN] Detalle con valor no numérico:', {
-            movimiento_id: c.movimiento_id,
-            cuenta_id: c.cuenta_id,
-            debito: c.debito,
-            credito: c.credito
-          });
-        }
-        if (codigoCuenta && saldos[codigoCuenta]) {
-          saldos[codigoCuenta].movDebito += Number(c.debito) || 0;
-          saldos[codigoCuenta].movCredito += Number(c.credito) || 0;
-          movimientosPeriodo++;
-          detallesSumados++;
-        }
-      });
-      if (movimientosPeriodo < 10) {
-        console.log('[DEBUG] detalles sumados para tx.id', tx.id, ':', detallesSumados);
-      }
-    });
-    console.log('Movimientos en el periodo:', movimientosPeriodo);
-
-    Object.keys(saldos).forEach(codigo => {
-      const s = saldos[codigo];
-      const saldoFinal = s.saldoAnterior + s.movDebito - s.movCredito;
-      s.saldoDebito = saldoFinal > 0 ? saldoFinal : 0;
-      s.saldoCredito = saldoFinal < 0 ? Math.abs(saldoFinal) : 0;
-    });
-    console.log('Saldos calculados:', Object.keys(saldos).length);
-
-  console.log('== Balance de Prueba: FIN ==');
-  if (req.query.export === 'excel') {
-      const workbook = new ExcelJS.Workbook();
-      const sheet = workbook.addWorksheet('Balance de Prueba');
-      sheet.addRow(['Código', 'Nombre', 'Saldo anterior', 'Mov. Débito', 'Mov. Crédito', 'Saldo Débito', 'Saldo Crédito']);
-      Object.entries(saldos).forEach(([codigo, data]) => {
-        sheet.addRow([
-          codigo,
-          data.nombre,
-          data.saldoAnterior,
-          data.movDebito,
-          data.movCredito,
-          data.saldoDebito,
-          data.saldoCredito
-        ]);
-      });
-      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.setHeader('Content-Disposition', 'attachment; filename=balance_prueba.xlsx');
-      workbook.xlsx.write(res).then(() => res.end());
-      return;
-    }
-    if (req.query.export === 'pdf') {
-      const doc = new PDFDocument();
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', 'attachment; filename=balance_prueba.pdf');
-      doc.pipe(res);
-      doc.fontSize(16).text('Balance de Prueba', { align: 'center' });
-      doc.moveDown();
-      Object.entries(saldos).forEach(([codigo, data]) => {
-        doc.fontSize(12).text(`Código: ${codigo} | Nombre: ${data.nombre} | Saldo anterior: ${data.saldoAnterior} | Mov. Débito: ${data.movDebito} | Mov. Crédito: ${data.movCredito} | Saldo Débito: ${data.saldoDebito} | Saldo Crédito: ${data.saldoCredito}`);
-      });
-      doc.end();
-      return;
-    }
-    res.json(saldos);
-  });
 }
 
 // Balance general: clasifica activos, pasivos y patrimonio

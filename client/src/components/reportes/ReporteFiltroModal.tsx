@@ -101,6 +101,7 @@ function useCentrosCosto(busqueda: string) {
 }
 
 const ReporteFiltroModal: React.FC<Props> = ({ reporte, onClose }) => {
+  const [mostrarTerceros, setMostrarTerceros] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resultado, setResultado] = useState<any>(null);
@@ -181,27 +182,39 @@ const ReporteFiltroModal: React.FC<Props> = ({ reporte, onClose }) => {
     setResultado(null);
     setShowResult(false);
     try {
-      // Solo implementado para balance de prueba y pantalla
       if (reporte.key === "balance-prueba" && formato === "pantalla") {
-        // Construir query params
-        const params = new URLSearchParams();
-        // Solo enviar cuentaCodigo si el check 'todas las cuentas' está desactivado
-        if (!todasCuentas && cuenta) {
-          params.append("cuentaCodigo", cuenta.split(" - ")[0]);
+        // Construir body con los parámetros esperados por el backend
+        let fecha_inicio = "";
+        let fecha_fin = "";
+        if (periodo === "anual" && anio) {
+          fecha_inicio = `${anio}-01-01`;
+          fecha_fin = `${anio}-12-31`;
+        } else if (periodo === "periodo" && periodoContable) {
+          // Si tienes la fecha en el periodo, úsala; si no, puedes pedirla al backend
+          // Aquí solo se envía el id del periodo, el backend debe resolver fechas
+          // Para pruebas, puedes dejar vacío y el backend lo maneja
+        } else if (periodo === "rango" && fechaInicial && fechaFinal) {
+          fecha_inicio = fechaInicial;
+          fecha_fin = fechaFinal;
         }
-        if (nivel && nivel > 0) params.append("nivel", nivel.toString());
-        if (!todosTerceros && tercero) params.append("terceroId", tercero.split(" - ")[0]);
-        if (periodo === "anual" && anio) params.append("anio", anio);
-        if (periodo === "periodo" && periodoContable) params.append("periodoContable", periodoContable);
-        if (periodo === "rango" && fechaInicial) params.append("desde", fechaInicial);
-        if (periodo === "rango" && fechaFinal) params.append("hasta", fechaFinal);
-        const res = await fetch(`/api/reportes/balance-prueba?${params.toString()}`);
+        const body = {
+          fecha_inicio,
+          fecha_fin,
+          cuenta_filtro: !todasCuentas && cuenta ? cuenta.split(" - ")[0] : null,
+          nivel: nivel || 1,
+          mostrar_terceros: mostrarTerceros ? 1 : 0,
+          tercero_id: !todosTerceros && tercero ? tercero.split(" - ")[0] : null
+        };
+        const res = await fetch(`/api/reportes/balance-prueba`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        });
         if (!res.ok) throw new Error("Error al consultar el balance de prueba");
         const data = await res.json();
         setResultado(data);
         setShowResult(true);
       } else {
-        // Otros formatos o reportes: por ahora solo cerrar
         setError("Solo disponible para Balance de Prueba en pantalla");
       }
     } catch (err: any) {
@@ -341,7 +354,12 @@ const ReporteFiltroModal: React.FC<Props> = ({ reporte, onClose }) => {
             Incluir código cuentas
           </label>
           <label className="flex items-center text-xs">
-            <input type="checkbox" className="mr-1" />
+            <input
+              type="checkbox"
+              className="mr-1"
+              checked={mostrarTerceros}
+              onChange={e => setMostrarTerceros(e.target.checked)}
+            />
             Incluir terceros
           </label>
         </div>
@@ -425,7 +443,7 @@ const ReporteFiltroModal: React.FC<Props> = ({ reporte, onClose }) => {
         </div>
       </div>
       {showResult && resultado && reporte.key === "balance-prueba" && (
-        <BalancePruebaModal data={resultado} onClose={() => setShowResult(false)} />
+  <BalancePruebaModal data={resultado} onClose={() => setShowResult(false)} nivel={nivel} />
       )}
     </>
   );

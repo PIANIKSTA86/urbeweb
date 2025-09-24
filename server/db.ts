@@ -12,5 +12,5 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-const pool = mysql.createPool({ uri: process.env.DATABASE_URL });
+export const pool = mysql.createPool({ uri: process.env.DATABASE_URL });
 export const db = drizzle(pool);
