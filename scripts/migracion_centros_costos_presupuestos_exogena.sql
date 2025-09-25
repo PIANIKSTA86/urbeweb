@@ -60,5 +60,5 @@ ALTER TABLE movimiento_detalle
 ALTER TABLE plan_cuentas
     ADD COLUMN es_presupuestal TINYINT DEFAULT 0,
     ADD COLUMN es_exogena TINYINT DEFAULT 0,
-    ADD COLUMN requiere_tercero TINYINT DEFAULT 0,
+    ADD COLUMN registra_tercero TINYINT DEFAULT 0,
     ADD COLUMN requiere_centro_costo TINYINT DEFAULT 0;

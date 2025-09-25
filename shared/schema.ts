@@ -190,10 +190,9 @@ export const planCuentas = mysqlTable("plan_cuentas", {
   descripcion: text("descripcion"),
   estado: tinyint("estado").default(1),
   es_debito: tinyint("es_debito"),
-  registra_tercero: tinyint("registra_tercero").default(0),
+  // registra_tercero: tinyint("registra_tercero").default(0),
   es_presupuestal: tinyint("es_presupuestal").default(0),
   es_exogena: tinyint("es_exogena").default(0),
-  requiere_tercero: tinyint("requiere_tercero").default(0),
   requiere_centro_costo: tinyint("requiere_centro_costo").default(0),
   fecha_creacion: datetime("fecha_creacion").default(sql`CURRENT_TIMESTAMP`),
   updated_at: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`)

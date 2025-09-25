@@ -9,20 +9,6 @@ import PDFDocument from 'pdfkit';
 
 // Balance de prueba: muestra saldos por cuenta
 export async function getBalancePrueba(req, res) {
-  // Log de la consulta SQL y parámetros
-  console.log('[BalancePrueba] SQL:', sql);
-  console.log('[BalancePrueba] Params SQL:', params);
-  // Log de depuración para centro de costo y parámetros recibidos
-  console.log('[BalancePrueba] Params:', {
-    fecha_inicio,
-    fecha_fin,
-    cuenta_filtro,
-    nivel,
-    mostrar_terceros,
-    centro_costo_id
-  });
-  // ...declaraciones originales...
-  // (No log antes de las variables)
   // Parámetros recibidos del frontend
   const fecha_inicio = req.query.fecha_inicio || req.body.fecha_inicio;
   const fecha_fin = req.query.fecha_fin || req.body.fecha_fin;
@@ -31,6 +17,7 @@ export async function getBalancePrueba(req, res) {
   const mostrar_terceros = parseInt(req.query.mostrar_terceros || req.body.mostrar_terceros || 0);
   const centro_costo_id = req.query.centro_costo_id || req.body.centro_costo_id;
 
+  // ...
   // Consulta SQL avanzada
   const sql = `
     SELECT 
@@ -99,6 +86,20 @@ export async function getBalancePrueba(req, res) {
     ORDER BY tipo_reporte DESC, codigo_nivel, tercero_nombre
   `;
 
+  // Log de la consulta SQL y parámetros
+  console.log('[BalancePrueba] SQL:', sql);
+  // Si tienes un array de parámetros, descomenta la siguiente línea:
+  // console.log('[BalancePrueba] Params SQL:', params);
+  // Log de depuración para centro de costo y parámetros recibidos
+  console.log('[BalancePrueba] Params:', {
+    fecha_inicio,
+    fecha_fin,
+    cuenta_filtro,
+    nivel,
+    mostrar_terceros,
+    centro_costo_id
+  });
+
   const params = [
     fecha_inicio, fecha_inicio, fecha_fin, fecha_inicio, fecha_fin, fecha_fin,
     mostrar_terceros, nivel, nivel, cuenta_filtro, cuenta_filtro, fecha_fin,
@@ -131,7 +132,7 @@ export async function getBalancePrueba(req, res) {
   }
 }
 
-// Balance general: clasifica activos, pasivos y patrimonio
+// const sql = "select id, codigo, nombre, tipo, nivel, padre_codigo, descripcion, estado, es_debito, registra_tercero, es_presupuestal, es_exogena, requiere_centro_costo, fecha_creacion, updated_at from plan_cuentas";
 export function getBalanceGeneral(req, res) {
   db.select().from(planCuentas).then(cuentas => {
     const saldos = {};
