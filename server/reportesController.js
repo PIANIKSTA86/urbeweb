@@ -16,6 +16,7 @@ export async function getBalancePrueba(req, res) {
   const nivel = parseInt(req.query.nivel || req.body.nivel || 1);
   const mostrar_terceros = parseInt(req.query.mostrar_terceros || req.body.mostrar_terceros || 0);
   const centro_costo_id = req.query.centro_costo_id || req.body.centro_costo_id;
+  const formato = req.query.formato || req.body.formato || null;
 
   // ...
   // Consulta SQL avanzada
@@ -33,11 +34,11 @@ export async function getBalancePrueba(req, res) {
     FROM plan_cuentas pc
     INNER JOIN movimiento_detalle md ON md.cuenta_id = pc.id
     INNER JOIN movimientos_contables mc ON mc.id = md.movimiento_id
-    INNER JOIN terceros t ON t.id = md.tercero_id
+  LEFT JOIN terceros t ON t.id = md.tercero_id
     WHERE ? = 1 AND ? >= 5 AND pc.nivel = ?
       AND (? IS NULL OR pc.codigo LIKE CONCAT(?, '%'))
       AND mc.fecha <= ?
-      AND (? IS NULL OR mc.centro_costo_id = ?)
+  AND (? IS NULL OR mc.centro_costo_id = ? OR mc.centro_costo_id IS NULL)
     GROUP BY pc.codigo, pc.nombre, t.numero_identificacion, tercero_nombre
     HAVING saldo_anterior != 0 OR mov_debito != 0 OR mov_credito != 0
     UNION ALL
@@ -64,7 +65,7 @@ export async function getBalancePrueba(req, res) {
     WHERE (? BETWEEN 1 AND 4 OR (? >= 5 AND ? = 0))
       AND (? IS NULL OR pc.codigo LIKE CONCAT(?, '%'))
       AND mc.fecha <= ?
-      AND (? IS NULL OR mc.centro_costo_id = ?)
+  AND (? IS NULL OR mc.centro_costo_id = ? OR mc.centro_costo_id IS NULL)
       AND (
         (? = 1 AND pc.nv1 IS NOT NULL) OR
         (? = 2 AND pc.nv2 IS NOT NULL) OR
@@ -125,6 +126,59 @@ export async function getBalancePrueba(req, res) {
     });
     // Obtener solo cuentas activas
     const [planCuentasRows] = await pool.query('SELECT id, codigo, nombre, tipo, nivel, padre_codigo FROM plan_cuentas WHERE estado = 1 ORDER BY codigo');
+
+    // Exportación Excel o PDF
+    if (formato === 'excel') {
+      const workbook = new ExcelJS.Workbook();
+      const sheet = workbook.addWorksheet('Balance de Prueba');
+      // Cabecera
+      sheet.addRow(['Código', 'Nombre', 'Tercero', 'Saldo Anterior', 'Débitos', 'Créditos', 'Saldo Final']);
+      movimientosFiltrados.forEach(row => {
+        sheet.addRow([
+          row.codigo_nivel,
+          row.nombre_nivel,
+          row.tercero_nombre || '',
+          row.saldo_anterior,
+          row.mov_debito,
+          row.mov_credito,
+          row.saldo_final
+        ]);
+      });
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', 'attachment; filename=balance_prueba.xlsx');
+      await workbook.xlsx.write(res);
+      res.end();
+      return;
+    }
+    if (formato === 'pdf') {
+      const doc = new PDFDocument({ margin: 30, size: 'A4' });
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'attachment; filename=balance_prueba.pdf');
+      doc.pipe(res);
+      doc.fontSize(14).text('Balance de Prueba', { align: 'center' });
+      doc.moveDown();
+      // Cabecera
+      doc.fontSize(10).text('Código', 30, doc.y, { continued: true });
+      doc.text('Nombre', 80, doc.y, { continued: true });
+      doc.text('Tercero', 200, doc.y, { continued: true });
+      doc.text('Saldo Ant.', 320, doc.y, { continued: true });
+      doc.text('Débitos', 390, doc.y, { continued: true });
+      doc.text('Créditos', 450, doc.y, { continued: true });
+      doc.text('Saldo Final', 520, doc.y);
+      doc.moveDown(0.5);
+      movimientosFiltrados.forEach(row => {
+        doc.text(row.codigo_nivel, 30, doc.y, { continued: true });
+        doc.text(row.nombre_nivel, 80, doc.y, { continued: true });
+        doc.text(row.tercero_nombre || '', 200, doc.y, { continued: true });
+        doc.text(String(row.saldo_anterior), 320, doc.y, { continued: true });
+        doc.text(String(row.mov_debito), 390, doc.y, { continued: true });
+        doc.text(String(row.mov_credito), 450, doc.y, { continued: true });
+        doc.text(String(row.saldo_final), 520, doc.y);
+      });
+      doc.end();
+      return;
+    }
+    // Respuesta normal JSON
     res.json({ movimientos: movimientosFiltrados, planCuentas: planCuentasRows });
   } catch (err) {
     console.error('Error ejecutando balance de prueba:', err);

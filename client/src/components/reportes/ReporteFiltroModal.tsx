@@ -182,30 +182,49 @@ const ReporteFiltroModal: React.FC<Props> = ({ reporte, onClose }) => {
     setResultado(null);
     setShowResult(false);
     try {
-      if (reporte.key === "balance-prueba" && formato === "pantalla") {
-        // Construir body con los parámetros esperados por el backend
-        let fecha_inicio = "";
-        let fecha_fin = "";
-        if (periodo === "anual" && anio) {
-          fecha_inicio = `${anio}-01-01`;
-          fecha_fin = `${anio}-12-31`;
-        } else if (periodo === "periodo" && periodoContable) {
-          // Si tienes la fecha en el periodo, úsala; si no, puedes pedirla al backend
-          // Aquí solo se envía el id del periodo, el backend debe resolver fechas
-          // Para pruebas, puedes dejar vacío y el backend lo maneja
-        } else if (periodo === "rango" && fechaInicial && fechaFinal) {
-          fecha_inicio = fechaInicial;
-          fecha_fin = fechaFinal;
-        }
-        const body = {
-          fecha_inicio,
-          fecha_fin,
-          cuenta_filtro: !todasCuentas && cuenta ? cuenta.split(" - ")[0] : null,
-          nivel: nivel || 1,
-          mostrar_terceros: mostrarTerceros ? 1 : 0,
-          tercero_id: !todosTerceros && tercero ? tercero.split(" - ")[0] : null,
-          centro_costo_id: !todosCentros && centro ? centro.split(" - ")[0] : null
-        };
+      // Construir body con los parámetros esperados por el backend
+      let fecha_inicio = "";
+      let fecha_fin = "";
+      if (periodo === "anual" && anio) {
+        fecha_inicio = `${anio}-01-01`;
+        fecha_fin = `${anio}-12-31`;
+      } else if (periodo === "periodo" && periodoContable) {
+        // Si tienes la fecha en el periodo, úsala; si no, puedes pedirla al backend
+        // Aquí solo se envía el id del periodo, el backend debe resolver fechas
+        // Para pruebas, puedes dejar vacío y el backend lo maneja
+      } else if (periodo === "rango" && fechaInicial && fechaFinal) {
+        fecha_inicio = fechaInicial;
+        fecha_fin = fechaFinal;
+      }
+      const body = {
+        fecha_inicio,
+        fecha_fin,
+        cuenta_filtro: !todasCuentas && cuenta ? cuenta.split(" - ")[0] : null,
+        nivel: nivel || 1,
+        mostrar_terceros: mostrarTerceros ? 1 : 0,
+        tercero_id: !todosTerceros && tercero ? tercero.split(" - ")[0] : null,
+        centro_costo_id: !todosCentros && centro ? centro.split(" - ")[0] : null,
+        formato
+      };
+      if (reporte.key === "balance-prueba" && (formato === "excel" || formato === "pdf")) {
+        const res = await fetch(`/api/reportes/balance-prueba`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        });
+        if (!res.ok) throw new Error("Error al exportar el balance de prueba");
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = formato === "excel" ? "balance_prueba.xlsx" : "balance_prueba.pdf";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+        setLoading(false);
+        return;
+      } else if (reporte.key === "balance-prueba" && formato === "pantalla") {
         const res = await fetch(`/api/reportes/balance-prueba`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -216,7 +235,7 @@ const ReporteFiltroModal: React.FC<Props> = ({ reporte, onClose }) => {
         setResultado(data);
         setShowResult(true);
       } else {
-        setError("Solo disponible para Balance de Prueba en pantalla");
+        setError("Solo disponible para Balance de Prueba");
       }
     } catch (err: any) {
       setError(err.message || "Error inesperado");
